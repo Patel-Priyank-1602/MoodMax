@@ -1,0 +1,52 @@
+/* ─── EmotionChart ─── */
+.emotion-chart {
+  padding: 24px;
+  margin-top: 24px;
+}
+
+.chart-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.chart-wrapper {
+  width: 100%;
+}
+
+.chart-tooltip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px !important;
+  border-radius: var(--radius-md) !important;
+  font-size: 0.85rem;
+}
+
+.chart-tooltip-emoji {
+  font-size: 1.2rem;
+}
+
+.chart-tooltip-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  text-transform: capitalize;
+}
+
+.chart-tooltip-value {
+  font-weight: 700;
+  color: var(--accent-secondary);
+  margin-left: 4px;
+}
+
+/* Override recharts default styles */
+.recharts-polar-grid-concentric circle {
+  stroke: rgba(108, 92, 231, 0.1);
+}
+
+.recharts-cartesian-grid line {
+  stroke: rgba(108, 92, 231, 0.08);
+}

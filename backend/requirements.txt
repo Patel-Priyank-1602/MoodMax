@@ -1,0 +1,33 @@
+# MoodMax Backend Dependencies
+# ─────────────────────────────
+
+# Web framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+
+# Database
+sqlalchemy[asyncio]==2.0.36
+aiosqlite==0.20.0
+alembic==1.14.1
+
+# ML / NLP
+torch>=2.0.0
+transformers==4.47.1
+accelerate==1.2.1
+datasets==3.2.0
+sentencepiece==0.2.0
+protobuf==5.29.2
+
+# Language detection
+fasttext-wheel==0.9.2
+
+# Data processing
+pandas==2.2.3
+numpy>=1.24.0
+scikit-learn==1.6.1
+
+# Utilities
+python-dotenv==1.0.1
+pydantic==2.10.4
+pydantic-settings==2.7.1
