@@ -122,18 +122,29 @@ class MLPipeline:
 
         # 2. Load high-accuracy 7-class emotion model
         try:
-            from transformers import pipeline as hf_pipeline
+            import torch
+            from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline as hf_pipeline
 
-            logger.info("  Loading 7-class emotion model (j-hartmann/emotion-english-distilroberta-base)...")
+            model_name = "j-hartmann/emotion-english-distilroberta-base"
+            logger.info(f"  Loading 7-class emotion model in bfloat16 ({model_name})...")
+
+            # Load in bfloat16 with low_cpu_mem_usage to fit within 512MB RAM tier (~164MB footprint)
+            model = AutoModelForSequenceClassification.from_pretrained(
+                model_name,
+                torch_dtype=torch.bfloat16,
+                low_cpu_mem_usage=True,
+            )
+            tokenizer = AutoTokenizer.from_pretrained(model_name)
+
             self.emotion_pipeline = hf_pipeline(
                 "text-classification",
-                model="j-hartmann/emotion-english-distilroberta-base",
-                framework="pt",
+                model=model,
+                tokenizer=tokenizer,
                 top_k=None,
                 device=-1,
             )
             self._emotion_available = True
-            logger.info("  Emotion model loaded successfully (7 classes: joy, sadness, anger, fear, surprise, disgust, neutral)")
+            logger.info("  Emotion model loaded successfully in bfloat16 (7 classes: joy, sadness, anger, fear, surprise, disgust, neutral)")
         except Exception as e:
             logger.warning(f"  Failed to load emotion model: {e}. Using rule-based fallback.")
             self._emotion_available = False
