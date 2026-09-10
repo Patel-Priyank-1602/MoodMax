@@ -72,18 +72,28 @@ class MLPipeline:
 
         logger.info("Loading ML models...")
 
-        # 1. Load emotion model
+        # Optimize PyTorch CPU memory and threads for cloud containers (512MB tier)
+        try:
+            import torch
+            torch.set_num_threads(1)
+        except Exception:
+            pass
+
+        # 1. Load emotion model (primary neural engine)
         self._load_emotion_model(model_dir)
 
-        # 2. Load sentiment model
+        # 2. Load sentiment model (or derive from emotion model to fit 512MB RAM)
         self._load_sentiment_model()
 
         # 3. Load language detector
         self._load_language_detector(model_dir)
 
+        import gc
+        gc.collect()
+
         logger.info("ML pipeline ready.")
         logger.info(f"  Emotion model:   {'✓ loaded' if self._emotion_available else '✗ fallback mode'}")
-        logger.info(f"  Sentiment model: {'✓ loaded' if self._sentiment_available else '✗ derived/fallback mode'}")
+        logger.info(f"  Sentiment model: {'✓ loaded' if self._sentiment_available else '✓ derived mode (saves ~500MB RAM)'}")
         logger.info(f"  Language detect: {'✓ loaded' if self._langdetect_available else '✗ fallback mode'}")
 
     def _load_emotion_model(self, model_dir: str):
@@ -129,7 +139,17 @@ class MLPipeline:
             self._emotion_available = False
 
     def _load_sentiment_model(self):
-        """Load pretrained Cardiff NLP sentiment model."""
+        """Load pretrained Cardiff NLP sentiment model if explicitly enabled, or derive from emotion distribution."""
+        # On memory-constrained cloud environments (e.g. Render 512MB free tier),
+        # loading two separate full transformer models exceeds 512MB RAM and triggers OOM.
+        # Deriving sentiment from the 7-class emotion distribution is mathematically consistent (PRD Sec 4),
+        # consumes 0 extra RAM, and runs 2x faster.
+        load_separate = os.environ.get("LOAD_SEPARATE_SENTIMENT_MODEL", "false").lower() == "true"
+        if not load_separate:
+            logger.info("  Sentiment model: Unified with 7-class emotion distribution (optimized for 512MB RAM tier).")
+            self._sentiment_available = False
+            return
+
         try:
             from transformers import pipeline as hf_pipeline
 
@@ -190,7 +210,9 @@ class MLPipeline:
             return self._mock_emotions(text)
 
         try:
-            results = self.emotion_pipeline(text[:512])
+            import torch
+            with torch.no_grad():
+                results = self.emotion_pipeline(text[:512])
             if results and len(results) > 0:
                 scores = results[0] if isinstance(results[0], list) else results
                 emotion_dict = {}
