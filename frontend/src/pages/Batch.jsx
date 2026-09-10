@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import FileUploader from '../components/FileUploader';
-import { analyzeBatch, getBatchStatus, getAnalyticsSummary } from '../api/client';
+import { analyzeBatch, getBatchStatus, getBatchResults, getAnalyticsSummary } from '../api/client';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   PieChart, Pie,
@@ -27,6 +27,7 @@ export default function Batch() {
   const [isLoading, setIsLoading] = useState(false);
   const [batchJob, setBatchJob] = useState(null);
   const [summary, setSummary] = useState(null);
+  const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
 
   const pollStatus = useCallback(async (jobId) => {
@@ -35,8 +36,12 @@ export default function Batch() {
       setBatchJob(status);
 
       if (status.status === 'done') {
-        const analytics = await getAnalyticsSummary(jobId);
+        const [analytics, batchResults] = await Promise.all([
+          getAnalyticsSummary(jobId),
+          getBatchResults(jobId),
+        ]);
         setSummary(analytics);
+        setResults(batchResults);
         setIsLoading(false);
       } else if (status.status === 'failed') {
         setError('Batch job failed. Check the backend logs.');
@@ -54,6 +59,7 @@ export default function Batch() {
     setIsLoading(true);
     setError(null);
     setSummary(null);
+    setResults(null);
     setBatchJob(null);
 
     try {
@@ -85,6 +91,57 @@ export default function Batch() {
     }))
     .sort((a, b) => b.value - a.value) : [];
 
+  const handleDownloadCsv = () => {
+    if (!results || results.length === 0) return;
+
+    // Collect all emotion keys from across the results
+    const emotionKeys = ['joy', 'sadness', 'anger', 'fear', 'surprise', 'disgust', 'neutral'];
+
+    // Define CSV headers
+    const headers = [
+      '#',
+      'Text',
+      'Sentiment',
+      'Confidence',
+      'Dominant Emotion',
+      'Language',
+      ...emotionKeys.map((e) => `Emotion_${e.charAt(0).toUpperCase() + e.slice(1)}`),
+      'Created At',
+    ];
+
+    const escapeCsv = (str) => {
+      if (str == null) return '""';
+      const text = String(str).replace(/"/g, '""');
+      return `"${text}"`;
+    };
+
+    const rows = results.map((item, idx) => {
+      const scores = item.emotion_scores || {};
+      return [
+        idx + 1,
+        escapeCsv(item.input_text),
+        escapeCsv(item.sentiment_label || ''),
+        item.sentiment_score != null ? (item.sentiment_score * 100).toFixed(1) + '%' : '',
+        escapeCsv(item.dominant_emotion || ''),
+        escapeCsv((item.detected_lang || '').toUpperCase()),
+        ...emotionKeys.map((e) => (scores[e] != null ? (scores[e] * 100).toFixed(1) + '%' : '')),
+        escapeCsv(item.created_at || ''),
+      ].join(',');
+    });
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const filename = `moodmax_batch_analysis_${batchJob?.batch_job_id || batchJob?.id || 'export'}.csv`;
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="batch-page" id="batch-page">
       <div className="page-header">
@@ -104,31 +161,6 @@ export default function Batch() {
             <line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
           <span>{error}</span>
-        </div>
-      )}
-
-      {batchJob && (
-        <div className="batch-status card animate-fade-in-up">
-          <div className="batch-status-header">
-            <h3 className="batch-status-title">
-              Batch Job #{batchJob.batch_job_id || batchJob.id}
-            </h3>
-            <span className={`badge badge-${batchJob.status === 'done' ? 'positive' : batchJob.status === 'failed' ? 'negative' : 'neutral'}`}>
-              {batchJob.status}
-            </span>
-          </div>
-          <div className="batch-status-details">
-            <div className="batch-stat">
-              <span className="batch-stat-value">{batchJob.total_items}</span>
-              <span className="batch-stat-label">Total Items</span>
-            </div>
-            {isLoading && (
-              <div className="batch-progress">
-                <div className="loading-bar"></div>
-                <span className="batch-progress-text">Processing...</span>
-              </div>
-            )}
-          </div>
         </div>
       )}
 
@@ -237,21 +269,71 @@ export default function Batch() {
               </ResponsiveContainer>
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Language breakdown */}
-          {Object.keys(summary.top_languages).length > 0 && (
-            <div className="card lang-card animate-fade-in-up">
-              <h3 className="chart-card-title">Languages Detected</h3>
-              <div className="lang-grid">
-                {Object.entries(summary.top_languages).map(([lang, count]) => (
-                  <div key={lang} className="lang-item">
-                    <span className="lang-code">{lang.toUpperCase()}</span>
-                    <span className="lang-count">{count}</span>
-                  </div>
+      {results && results.length > 0 && (
+        <div className="batch-results-section animate-fade-in-up">
+          <div className="batch-results-header">
+            <h3 className="chart-card-title">Individual Results</h3>
+            <button
+              type="button"
+              className="btn btn-download-csv"
+              onClick={handleDownloadCsv}
+              id="download-csv-button"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span>Download CSV</span>
+            </button>
+          </div>
+          <div className="batch-results-table-wrap card">
+            <table className="batch-results-table">
+              <thead>
+                <tr>
+                  <th className="col-num">#</th>
+                  <th className="col-text">Text</th>
+                  <th className="col-sentiment">Sentiment</th>
+                  <th className="col-confidence">Confidence</th>
+                  <th className="col-emotion">Dominant Emotion</th>
+                  <th className="col-lang">Lang</th>
+                </tr>
+              </thead>
+              <tbody>
+                {results.map((item, idx) => (
+                  <tr key={item.id}>
+                    <td className="col-num">{idx + 1}</td>
+                    <td className="col-text">
+                      <span className="result-text-cell" title={item.input_text}>
+                        {item.input_text}
+                      </span>
+                    </td>
+                    <td className="col-sentiment">
+                      <span className={`sentiment-badge sentiment-${(item.sentiment_label || '').toLowerCase()}`}>
+                        {item.sentiment_label}
+                      </span>
+                    </td>
+                    <td className="col-confidence">
+                      {item.sentiment_score != null ? `${(item.sentiment_score * 100).toFixed(0)}%` : '—'}
+                    </td>
+                    <td className="col-emotion">
+                      <span
+                        className="emotion-dot"
+                        style={{ background: EMOTION_COLORS[(item.dominant_emotion || '').toLowerCase()] || '#94A3B8' }}
+                      ></span>
+                      {item.dominant_emotion
+                        ? item.dominant_emotion.charAt(0).toUpperCase() + item.dominant_emotion.slice(1)
+                        : '—'}
+                    </td>
+                    <td className="col-lang">{(item.detected_lang || '—').toUpperCase()}</td>
+                  </tr>
                 ))}
-              </div>
-            </div>
-          )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

@@ -44,6 +44,14 @@ export async function getBatchStatus(batchJobId) {
 }
 
 /**
+ * GET /api/batch/:id/results — Get individual results for a batch job
+ */
+export async function getBatchResults(batchJobId) {
+  const response = await api.get(`/api/batch/${batchJobId}/results`);
+  return response.data;
+}
+
+/**
  * GET /api/history — Get paginated analysis history
  */
 export async function getHistory({ limit = 20, offset = 0, search = '' } = {}) {

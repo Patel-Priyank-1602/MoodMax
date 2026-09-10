@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db.database import get_db, async_session
 from ..db import crud
 from ..ml.pipeline import ml_pipeline
-from ..schemas import BatchJobResponse, BatchJobStatusResponse
+from ..schemas import BatchJobResponse, BatchJobStatusResponse, HistoryItem
 
 router = APIRouter(prefix="/api", tags=["batch"])
 
@@ -115,3 +115,31 @@ async def get_batch_status(
         created_at=batch_job.created_at,
         completed_at=batch_job.completed_at,
     )
+
+
+@router.get("/batch/{batch_job_id}/results", response_model=list[HistoryItem])
+async def get_batch_results(
+    batch_job_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get all individual analysis results for a batch job."""
+    batch_job = await crud.get_batch_job(db, batch_job_id)
+    if not batch_job:
+        raise HTTPException(status_code=404, detail="Batch job not found.")
+
+    analyses = await crud.get_batch_results(db, batch_job_id)
+
+    return [
+        HistoryItem(
+            id=a.id,
+            input_text=a.input_text,
+            detected_lang=a.detected_lang,
+            sentiment_label=a.sentiment_label,
+            sentiment_score=a.sentiment_score,
+            emotion_scores=a.emotion_scores,
+            dominant_emotion=a.dominant_emotion,
+            source=a.source,
+            created_at=a.created_at,
+        )
+        for a in analyses
+    ]

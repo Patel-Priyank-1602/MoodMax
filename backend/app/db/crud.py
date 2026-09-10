@@ -120,6 +120,16 @@ async def get_batch_job(db: AsyncSession, batch_job_id: int) -> Optional[BatchJo
     return result.scalar_one_or_none()
 
 
+async def get_batch_results(db: AsyncSession, batch_job_id: int) -> list[Analysis]:
+    """Get all analyses belonging to a batch job."""
+    result = await db.execute(
+        select(Analysis)
+        .where(Analysis.batch_job_id == batch_job_id)
+        .order_by(Analysis.id)
+    )
+    return list(result.scalars().all())
+
+
 # ─────────────────────────────────────────────
 # Analytics
 # ─────────────────────────────────────────────
