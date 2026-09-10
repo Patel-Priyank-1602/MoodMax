@@ -324,7 +324,6 @@ def train(args):
         load_best_model_at_end=True,
         metric_for_best_model="macro_f1",
         greater_is_better=True,
-        logging_dir=str(model_dir / "logs"),
         logging_steps=100,
         report_to="none",
         dataloader_num_workers=0,  # Windows multi-threading compatibility
