@@ -195,7 +195,7 @@ def evaluate_model(args):
     results_path = model_dir / "evaluation_results.json"
     with open(results_path, "w") as f:
         json.dump(results, f, indent=2)
-    print(f"\n✓ Results saved to {results_path}")
+    print(f"\n[OK] Results saved to {results_path}")
 
 
 def main():
