@@ -60,16 +60,18 @@ TARGET_CLASSES = ["joy", "sadness", "anger", "fear", "surprise", "disgust", "neu
 def parse_labels(label_field):
     """Parse the labels field from GoEmotions CSV.
     
-    Can be a string representation of a list like '[0, 17]' or already a list.
+    Can be a string representation like '[0, 17]' or numpy array string '[ 8 20]',
+    an integer, or already a list.
     """
     if isinstance(label_field, list):
         return label_field
     if isinstance(label_field, str):
-        try:
-            return ast.literal_eval(label_field)
-        except (ValueError, SyntaxError):
-            return []
-    if isinstance(label_field, (int, float)):
+        import re
+        nums = re.findall(r"\d+", label_field)
+        if nums:
+            return [int(x) for x in nums]
+        return []
+    if isinstance(label_field, (int, float)) and not np.isnan(label_field):
         return [int(label_field)]
     return []
 

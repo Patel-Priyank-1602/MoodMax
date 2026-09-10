@@ -75,8 +75,20 @@ def evaluate_model(args):
     texts = test_df["text"].fillna("").tolist()
     true_labels = test_df[TARGET_CLASSES].values
 
+    # Check calibration
+    temperature = args.temperature
+    if temperature is None and (model_dir / "calibration.json").exists():
+        with open(model_dir / "calibration.json") as f:
+            calib = json.load(f)
+            temperature = float(calib.get("temperature", 1.0))
+            print(f"  Loaded calibration temperature T = {temperature:.4f} from calibration.json")
+    elif temperature is not None:
+        print(f"  Using specified calibration temperature T = {temperature:.4f}")
+    else:
+        temperature = 1.0
+
     all_probs = []
-    batch_size = 32
+    batch_size = min(args.batch_size, 32)
 
     for i in range(0, len(texts), batch_size):
         batch = texts[i:i + batch_size]
@@ -90,7 +102,8 @@ def evaluate_model(args):
 
         with torch.no_grad():
             outputs = model(**inputs)
-            probs = torch.sigmoid(outputs.logits).cpu().numpy()
+            scaled_logits = outputs.logits / temperature
+            probs = torch.sigmoid(scaled_logits).cpu().numpy()
             all_probs.append(probs)
 
         if (i // batch_size) % 20 == 0:
@@ -189,6 +202,10 @@ def main():
     parser = argparse.ArgumentParser(description="Evaluate MoodMax emotion model")
     parser.add_argument("--model_dir", type=str, default=None,
                         help="Path to the trained model directory")
+    parser.add_argument("--temperature", type=float, default=None,
+                        help="Post-hoc temperature scaling parameter T (defaults to calibration.json if present)")
+    parser.add_argument("--batch_size", type=int, default=16,
+                        help="Evaluation batch size (default: 16)")
     parser.add_argument("--per_language", action="store_true",
                         help="Show per-language F1 breakdown")
     args = parser.parse_args()
