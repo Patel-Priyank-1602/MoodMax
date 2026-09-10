@@ -235,6 +235,7 @@
 @media (max-width: 768px) {
   .result-card {
     padding: 20px 18px;
+    border-radius: 16px;
   }
   .result-summary-grid {
     grid-template-columns: 1fr;
@@ -246,6 +247,38 @@
   .emotion-bar-row {
     gap: 10px;
     padding: 6px 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .result-card {
+    padding: 16px 12px;
+  }
+  .summary-item {
+    padding: 12px 14px;
+  }
+  .summary-sentiment-title,
+  .summary-dominant-title,
+  .summary-lang-title {
+    font-size: 1.1rem;
+  }
+  .emotion-bar-row {
+    gap: 8px;
+    padding: 4px 2px;
+  }
+  .emotion-bar-label {
+    min-width: 85px;
+    gap: 6px;
+  }
+  .emotion-bar-name {
+    font-size: 0.8rem;
+  }
+  .emotion-bar-value {
+    min-width: 46px;
+    font-size: 0.78rem;
+  }
+  .emotion-bar-track {
+    height: 9px;
   }
 }
 

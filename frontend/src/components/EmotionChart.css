@@ -89,3 +89,13 @@
   stroke: rgba(38, 127, 75, 0.1) !important;
 }
 
+@media (max-width: 640px) {
+  .emotion-chart {
+    padding: 16px 12px;
+    border-radius: 16px;
+  }
+  .chart-card-header {
+    margin-bottom: 4px;
+  }
+}
+
