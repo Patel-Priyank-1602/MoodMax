@@ -238,23 +238,70 @@ class MLPipeline:
 
         return self._mock_sentiment(text)
 
+    @staticmethod
+    def translate_to_english(text: str, source_lang: Optional[str] = None) -> str:
+        """
+        Translate non-English text to English to ensure maximum emotion and sentiment accuracy.
+        Uses Google Translate API with fallback to original text.
+        """
+        if not text or not text.strip():
+            return text
+
+        # If already known to be English, no translation needed
+        if source_lang and source_lang.lower() == "en":
+            return text
+
+        try:
+            import json
+            import urllib.parse
+            import urllib.request
+
+            clean = text.strip()
+            sl = source_lang.lower() if source_lang else "auto"
+            url = (
+                "https://translate.googleapis.com/translate_a/single?client=gtx&sl="
+                + sl
+                + "&tl=en&dt=t&q="
+                + urllib.parse.quote(clean)
+            )
+            req = urllib.request.Request(
+                url,
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+            )
+            with urllib.request.urlopen(req, timeout=4) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                if data and isinstance(data, list) and data[0]:
+                    translated = "".join([part[0] for part in data[0] if part and part[0]]).strip()
+                    if translated:
+                        logger.info(f"Translated [{source_lang or 'auto'} -> en]: '{clean[:40]}...' -> '{translated[:40]}...'")
+                        return translated
+        except Exception as e:
+            logger.warning(f"Translation failed ({e}), continuing with original text.")
+
+        return text
+
     def analyze(self, text: str) -> AnalysisResult:
         """Run full analysis pipeline on input text."""
         cleaned = clean_text(text)
         if not cleaned:
             cleaned = text.strip() or "empty"
 
-        # 1. Detect language
+        # 1. Detect language on the user's original text
         detected_lang = self.detect_language(cleaned)
 
-        # 2. Predict emotions
-        emotion_scores = self.predict_emotions(cleaned)
+        # 2. For non-English languages, translate to English for model inference
+        inference_text = cleaned
+        if detected_lang and detected_lang.lower() != "en":
+            inference_text = self.translate_to_english(cleaned, source_lang=detected_lang)
 
-        # 3. Get dominant emotion
+        # 3. Predict emotions using English-aligned model features
+        emotion_scores = self.predict_emotions(inference_text)
+
+        # 4. Get dominant emotion
         dominant_emotion = max(emotion_scores, key=emotion_scores.get)
 
-        # 4. Predict sentiment (using model or emotion distribution)
-        sentiment_label, sentiment_score = self.predict_sentiment(cleaned, emotion_scores=emotion_scores)
+        # 5. Predict sentiment (using model or emotion distribution)
+        sentiment_label, sentiment_score = self.predict_sentiment(inference_text, emotion_scores=emotion_scores)
 
         return AnalysisResult(
             detected_lang=detected_lang,
