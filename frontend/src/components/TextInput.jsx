@@ -35,7 +35,7 @@ export default function TextInput({ onAnalyze, isLoading }) {
         value={text}
         onChange={(e) => setText(e.target.value.slice(0, maxLength))}
         onKeyDown={handleKeyDown}
-        placeholder="Paste any social media text, tweet, comment, or review here... Supports multiple languages 🌍"
+        placeholder="Paste any social media text, tweet, comment, or review here... Supports multiple languages"
         rows={5}
         maxLength={maxLength}
         disabled={isLoading}
@@ -66,7 +66,7 @@ export default function TextInput({ onAnalyze, isLoading }) {
                 Analyzing...
               </>
             ) : (
-              <>✨ Analyze</>
+              <>Analyze</>
             )}
           </button>
         </div>

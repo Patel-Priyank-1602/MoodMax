@@ -1,115 +1,179 @@
-/* ─── Navbar ─── */
+/* ─── QueryIQ-Style Sleek Navbar with MoodMax Green Theme ─── */
 .navbar {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(10, 10, 15, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border-color);
+  background: #FFFFFF;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
 }
 
 .navbar-inner {
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
-  padding: 0 24px;
-  height: 64px;
-  display: flex;
+  padding: 0 48px;
+  height: 84px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
 }
 
+/* ─── Brand Logo & Name (Left Column) ─── */
 .navbar-brand {
+  justify-self: start;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s ease;
 }
 
-.navbar-logo {
-  font-size: 1.5rem;
-  filter: drop-shadow(0 0 8px rgba(108, 92, 231, 0.5));
+.navbar-brand:hover {
+  opacity: 0.9;
+}
+
+.navbar-logo-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent; /* No black background */
+}
+
+.navbar-logo-img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 8px;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.navbar-brand:hover .navbar-logo-img {
+  transform: scale(1.08) rotate(3deg);
 }
 
 .navbar-title {
-  font-size: 1.25rem;
+  font-size: 1.6rem;
   font-weight: 800;
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -0.02em;
+  color: #0F172A;
+  letter-spacing: -0.03em;
 }
 
-.navbar-links {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.navbar-link {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  text-decoration: none;
-  border-radius: var(--radius-md);
-  transition: all var(--transition-base);
-}
-
-.navbar-link:hover {
-  background: rgba(108, 92, 231, 0.1);
-  color: var(--text-primary);
-}
-
-.navbar-link-active {
-  background: rgba(108, 92, 231, 0.15);
-  color: var(--accent-secondary);
-}
-
-.navbar-link-active .navbar-link-icon {
-  transform: scale(1.1);
-}
-
-.navbar-link-icon {
-  font-size: 1rem;
-  transition: transform var(--transition-fast);
-}
-
-.navbar-status {
+/* ─── Center Pill Capsule (Exact Middle Column) ─── */
+.navbar-pill-group {
+  justify-self: center;
   display: flex;
   align-items: center;
   gap: 8px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
 }
 
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-positive);
-  animation: pulse-glow 2s ease infinite;
-  box-shadow: 0 0 8px rgba(0, 184, 148, 0.5);
+.navbar-pill-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 24px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #4A6354;
+  text-decoration: none;
+  border-radius: 9999px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  user-select: none;
+  background: transparent;
 }
 
-.status-text {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.nav-pill-icon {
+  flex-shrink: 0;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-@media (max-width: 640px) {
-  .navbar-link-label {
-    display: none;
+.navbar-pill-link:not(.navbar-pill-link-active):hover {
+  color: #111827;
+  background: #F4F7F5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transform: translateY(-1px);
+}
+
+.navbar-pill-link:hover .nav-pill-icon {
+  transform: scale(1.15);
+}
+
+/* Active State: Emerald Pill with Drop Shadow (Matching QueryIQ Search Pill) */
+.navbar-pill-link-active {
+  background: linear-gradient(135deg, #1C693B 0%, #29854F 100%) !important;
+  color: #FFFFFF !important;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(28, 105, 59, 0.35);
+  transform: translateY(-1px);
+}
+
+.navbar-pill-link-active:hover {
+  background: linear-gradient(135deg, #185E34 0%, #247746 100%) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 6px 18px rgba(28, 105, 59, 0.42);
+  transform: translateY(-1px) scale(1.02);
+}
+
+.navbar-pill-link-active .nav-pill-icon {
+  stroke: #FFFFFF;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
+}
+
+/* ─── Right Actions: Clean Minimal Outline Icons (Right Column) ─── */
+.navbar-right-actions {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.navbar-text-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  text-decoration: none;
+  padding: 8px;
+  border-radius: 8px;
+  transition: color 0.2s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.navbar-text-icon-btn:hover {
+  color: #0F172A;
+  transform: scale(1.18);
+}
+
+.navbar-text-icon-btn:active {
+  transform: scale(1.0);
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+  .navbar-inner {
+    padding: 0 20px;
+    height: 72px;
+    display: flex;
+    justify-content: space-between;
   }
-  .navbar-link-icon {
-    font-size: 1.2rem;
+  .navbar-logo-img {
+    width: 36px;
+    height: 36px;
   }
-  .navbar-status {
-    display: none;
+  .navbar-title {
+    font-size: 1.35rem;
+  }
+  .navbar-pill-link {
+    padding: 7px 16px;
+    font-size: 0.88rem;
+  }
+  .navbar-right-actions {
+    gap: 16px;
   }
 }

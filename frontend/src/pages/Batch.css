@@ -6,18 +6,25 @@
 
 .batch-error {
   margin-top: 24px;
-  padding: 16px 24px;
+  padding: 16px 20px;
   display: flex;
   align-items: center;
   gap: 12px;
-  border-color: rgba(255, 118, 117, 0.3);
-  color: var(--color-negative);
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: var(--radius-md);
+  color: #DC2626;
   font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .batch-status {
   margin-top: 24px;
   padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .batch-status-header {
@@ -48,12 +55,13 @@
 .batch-stat-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--accent-secondary);
+  color: var(--primary);
 }
 
 .batch-stat-label {
   font-size: 0.75rem;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--text-muted);
 }
 
@@ -86,23 +94,52 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 24px 16px;
+  padding: 28px 18px;
   text-align: center;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  box-shadow: 0 10px 36px rgba(35, 75, 48, 0.05);
 }
 
 .dashboard-stat-icon {
-  font-size: 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
 }
 
 .dashboard-stat-value {
   font-size: 2rem;
   font-weight: 800;
-  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.stat-val-total {
+  color: #267F4B;
+}
+
+.stat-val-pos {
+  color: #10B981;
+}
+
+.stat-val-neg {
+  color: #EF4444;
+}
+
+.stat-val-lang {
+  color: #8B5CF6;
 }
 
 .dashboard-stat-label {
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
@@ -116,7 +153,13 @@
 }
 
 .chart-card {
-  padding: 24px;
+  padding: 28px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  box-shadow: 0 10px 36px rgba(35, 75, 48, 0.05);
 }
 
 .chart-card-title {
@@ -124,12 +167,18 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   margin-bottom: 20px;
 }
 
 .lang-card {
-  padding: 24px;
+  padding: 28px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  box-shadow: 0 10px 36px rgba(35, 75, 48, 0.05);
 }
 
 .lang-grid {
@@ -143,26 +192,24 @@
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: var(--bg-input);
+  background: var(--surface-hover);
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border);
 }
 
 .lang-code {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 700;
-  color: var(--accent-secondary);
+  color: var(--primary);
 }
 
 .lang-count {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-/* Recharts label color fix */
-.recharts-pie-label-text {
-  fill: var(--text-secondary) !important;
-  font-size: 11px !important;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: #EEF0FF;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
 }
 
 @media (max-width: 768px) {

@@ -58,7 +58,11 @@ export default function HistoryDetail() {
     return (
       <div className="detail-page" id="history-detail-page">
         <div className="detail-error glass-card">
-          <span className="empty-state-icon">❌</span>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="15" y1="9" x2="9" y2="15" />
+            <line x1="9" y1="9" x2="15" y2="15" />
+          </svg>
           <h3>{error}</h3>
           <Link to="/history" className="btn btn-primary" style={{ marginTop: 16 }}>
             ← Back to History

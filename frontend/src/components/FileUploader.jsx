@@ -71,7 +71,13 @@ export default function FileUploader({ onUpload, isLoading }) {
           id="csv-file-input"
         />
 
-        <div className="upload-icon">📁</div>
+        <div className="upload-icon">
+          <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
         <h3 className="upload-title">
           {dragActive ? 'Drop your CSV here' : 'Drag & drop your CSV file'}
         </h3>
@@ -81,15 +87,21 @@ export default function FileUploader({ onUpload, isLoading }) {
       </div>
 
       {selectedFile && (
-        <div className="upload-preview glass-card animate-fade-in-up">
+        <div className="upload-preview card animate-fade-in-up">
           <div className="upload-file-info">
-            <span className="upload-file-icon">📄</span>
+            <svg className="upload-file-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
             <div className="upload-file-details">
               <span className="upload-file-name">{selectedFile.name}</span>
               <span className="upload-file-size">{formatSize(selectedFile.size)}</span>
             </div>
             <button
-              className="btn btn-ghost"
+              type="button"
+              className="upload-remove-btn"
               onClick={(e) => { e.stopPropagation(); setSelectedFile(null); }}
               disabled={isLoading}
             >
@@ -108,7 +120,7 @@ export default function FileUploader({ onUpload, isLoading }) {
                 Processing...
               </>
             ) : (
-              <>🚀 Start Batch Analysis</>
+              <>Start Batch Analysis</>
             )}
           </button>
         </div>

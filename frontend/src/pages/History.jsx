@@ -3,10 +3,7 @@ import { Link } from 'react-router-dom';
 import { getHistory } from '../api/client';
 import './History.css';
 
-const EMOTION_EMOJIS = {
-  joy: '😄', sadness: '😢', anger: '😠', fear: '😨',
-  surprise: '😲', disgust: '🤢', neutral: '😐',
-};
+
 
 export default function History() {
   const [items, setItems] = useState([]);
@@ -82,7 +79,7 @@ export default function History() {
           id="history-search-input"
         />
         <button type="submit" className="btn btn-primary" id="history-search-btn">
-          🔍 Search
+          Search
         </button>
         {search && (
           <button
@@ -97,7 +94,11 @@ export default function History() {
 
       {error && (
         <div className="history-error glass-card animate-fade-in-up">
-          <span>⚠️</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
           <span>{error}</span>
         </div>
       )}
@@ -109,7 +110,15 @@ export default function History() {
         </div>
       ) : items.length === 0 ? (
         <div className="empty-state glass-card">
-          <div className="empty-state-icon">📋</div>
+          <div className="empty-state-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="1.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+          </div>
           <h3 className="empty-state-title">No analyses yet</h3>
           <p className="empty-state-text">
             Go to the <Link to="/">Analyzer</Link> to analyze some text first.
@@ -149,8 +158,7 @@ export default function History() {
                     </td>
                     <td>
                       <span className="history-emotion">
-                        {EMOTION_EMOJIS[item.dominant_emotion] || '❓'}
-                        {' '}{item.dominant_emotion}
+                        {item.dominant_emotion}
                       </span>
                     </td>
                     <td className="history-lang">{item.detected_lang?.toUpperCase()}</td>

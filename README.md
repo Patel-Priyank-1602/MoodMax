@@ -1,6 +1,6 @@
 # MoodMax — Multilingual Sentiment & Emotion Analysis
 
-> Full-stack AI-powered web app that analyzes social media text for **sentiment** (Positive/Negative/Neutral), **emotion distribution** (Joy, Sadness, Anger, Fear, Surprise, Disgust, Neutral), and **language detection** — with charts, history tracking, and batch CSV processing.
+> Full-stack AI-powered web app that analyzes social media text for **sentiment** (Positive/Negative/Neutral), **emotion distribution** (Joy, Sadness, Anger, Fear, Surprise, Disgust, Neutral), and **language detection** — with charts, batch CSV processing, and aggregate analytics.
 
 ## 🧠 Features
 
@@ -8,7 +8,6 @@
 - **Multilingual**: Supports 100+ languages via multilingual transformer models
 - **Emotion Radar Chart**: Interactive Recharts visualization of emotion probabilities
 - **Batch Mode**: Upload CSV files for bulk analysis with aggregate dashboard
-- **History & Search**: Browse, search, and revisit past analyses
 - **Real-time Language Detection**: Automatic language identification via fastText
 
 ## 🏗️ Architecture
@@ -72,55 +71,116 @@ MoodMax/
 └── PRD.md
 ```
 
-## 🚀 Quick Start
+## 🚀 How to Run the Project
 
 ### Prerequisites
-- Python 3.10+
-- Node.js 18+
-- NVIDIA GPU (optional, for training; CPU works for inference)
+- **Python 3.10+** (with `pip`)
+- **Node.js 18+** & **npm**
+- *(Optional)* **Docker & Docker Compose** (for containerized run)
+- *(Optional)* NVIDIA GPU (for model training; CPU is sufficient for inference)
 
-### 1. Backend Setup
+---
+
+### Option 1: Run Locally (Two Terminals)
+
+To run the full stack locally, start the backend and frontend in separate terminal windows.
+
+#### 🔹 Terminal 1: Start Backend (FastAPI)
 
 ```bash
+# 1. Navigate to the backend directory
 cd backend
-python -m venv venv
-venv\Scripts\activate        # Windows
-# source venv/bin/activate   # Linux/Mac
 
+# 2. Create a virtual environment (recommended)
+python -m venv venv
+
+# 3. Activate the virtual environment
+# Windows (PowerShell):
+.\venv\Scripts\Activate.ps1
+# Windows (Command Prompt):
+venv\Scripts\activate.bat
+# Linux / macOS:
+source venv/bin/activate
+
+# 4. Install dependencies
 pip install -r requirements.txt
+
+# 5. Start the backend server
 uvicorn app.main:app --reload --port 8000
 ```
 
 > [!TIP]
-> On Windows, if `python` is not in your PATH or if using an embedded install (e.g. at `C:\Python312\python.exe`), you can directly run:
+> On Windows, if `python` or `uvicorn` is not in your global PATH, run directly via your Python executable:
 > ```powershell
-> C:\Python312\python.exe -m uvicorn app.main:app --reload --port 8000
+> python -m uvicorn app.main:app --reload --port 8000
 > ```
 
-
-The backend starts with **mock predictions** by default. To use real ML models:
-
-1. Download fastText language model:
-   ```bash
-   # Place in models/lid.176.bin
-   curl -o ../models/lid.176.bin https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin
-   ```
-
-2. The sentiment model auto-downloads on first startup (~1.1GB).
-
-3. For the emotion model, train it first (see Training section).
-
-### 2. Frontend Setup
+#### 🔹 Terminal 2: Start Frontend (React + Vite)
 
 ```bash
+# 1. Navigate to the frontend directory
 cd frontend
+
+# 2. Install dependencies
 npm install
+
+# 3. Start the Vite development server
 npm run dev
 ```
 
-Open http://localhost:5173 in your browser.
+---
 
-### 3. Data Pipeline (for training)
+### Option 2: Run with Docker Compose
+
+If you have Docker installed, you can start both the backend and frontend with a single command from the project root:
+
+```bash
+docker-compose up --build
+```
+
+To run in detached background mode:
+```bash
+docker-compose up -d --build
+```
+
+To stop the containers:
+```bash
+docker-compose down
+```
+
+---
+
+### 🌐 Access the Application
+
+Once both services are running, open your browser:
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| **Frontend Web App** | [http://localhost:5173](http://localhost:5173) | MoodMax React UI |
+| **Backend API** | [http://localhost:8000](http://localhost:8000) | FastAPI Base URL |
+| **Interactive API Docs (Swagger UI)** | [http://localhost:8000/docs](http://localhost:8000/docs) | Interactive API exploration |
+| **ReDoc API Docs** | [http://localhost:8000/redoc](http://localhost:8000/redoc) | Alternative API documentation |
+| **Health Check** | [http://localhost:8000/health](http://localhost:8000/health) | Backend status verification |
+
+---
+
+### ⚙️ ML Model Modes
+
+By default, the backend starts in **mock mode** if trained model checkpoints are not found, so you can test the UI and API instantly without downloading gigabytes of weights.
+
+To enable full ML predictions:
+1. **Language Detection**: Download fastText model into `models/lid.176.bin`:
+   ```bash
+   curl -o models/lid.176.bin https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin
+   ```
+2. **Sentiment Model**: Cardiff NLP XLM-RoBERTa downloads automatically on first run (~1.1GB).
+3. **Emotion Model**: Train the custom DistilBERT emotion classifier using the training script (see [Model Training](#-optional-data-pipeline--model-training) below).
+
+---
+
+## 🏋️ Optional: Data Pipeline & Model Training
+
+### 1. Data Pipeline
 
 ```bash
 cd data/scripts
@@ -133,7 +193,7 @@ python build_splits.py
 python build_splits.py --with-translation
 ```
 
-### 4. Model Training
+### 2. Model Training
 
 ```bash
 cd training

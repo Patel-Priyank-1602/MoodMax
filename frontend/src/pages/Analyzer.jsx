@@ -35,7 +35,7 @@ export default function Analyzer() {
   return (
     <div className="analyzer-page" id="analyzer-page">
       <div className="page-header">
-        <h1 className="page-title">Analyze Text</h1>
+        <h1 className="page-title">Analyze <span className="title-accent">Text</span></h1>
         <p className="page-subtitle">
           Paste any social media text to get instant sentiment and emotion analysis.
           Supports 100+ languages.
@@ -52,8 +52,12 @@ export default function Analyzer() {
       )}
 
       {error && (
-        <div className="analyzer-error glass-card animate-fade-in-up">
-          <span className="error-icon">⚠️</span>
+        <div className="analyzer-error card animate-fade-in-up">
+          <svg className="error-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
           <span className="error-text">{error}</span>
         </div>
       )}
@@ -72,22 +76,26 @@ export default function Analyzer() {
 
               {/* Quick stats */}
               <div className="quick-stats glass-card animate-fade-in-up">
-                <div className="stat-item">
-                  <span className="stat-value">{result.detected_lang?.toUpperCase()}</span>
-                  <span className="stat-label">Language</span>
+                <div className="quick-stats-row">
+                  <div className="stat-item">
+                    <span className="stat-value">{result.detected_lang?.toUpperCase() || 'EN'}</span>
+                    <span className="stat-label">Language</span>
+                  </div>
+                  <div className="stat-divider"></div>
+                  <div className="stat-item">
+                    <span className="stat-value highlight-green">
+                      {Object.entries(result.emotions)
+                        .filter(([, s]) => s > 0.1).length}
+                    </span>
+                    <span className="stat-label">Active Emotions</span>
+                  </div>
                 </div>
-                <div className="stat-divider"></div>
-                <div className="stat-item">
-                  <span className="stat-value">
-                    {Object.entries(result.emotions)
-                      .filter(([, s]) => s > 0.1).length}
-                  </span>
-                  <span className="stat-label">Active Emotions</span>
-                </div>
-                <div className="stat-divider"></div>
-                <div className="stat-item">
-                  <span className="stat-value">#{result.id}</span>
-                  <span className="stat-label">Analysis ID</span>
+                <div className="quick-stats-divider-h"></div>
+                <div className="quick-stats-row">
+                  <div className="stat-item">
+                    <span className="stat-value">#{result.id}</span>
+                    <span className="stat-label">Analysis ID</span>
+                  </div>
                 </div>
               </div>
             </div>

@@ -13,7 +13,8 @@
 }
 
 .breadcrumb-link {
-  color: var(--text-accent);
+  color: var(--primary);
+  font-weight: 500;
 }
 
 .breadcrumb-sep {
@@ -45,6 +46,10 @@
 .detail-original {
   padding: 24px;
   margin-bottom: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .detail-section-title {
