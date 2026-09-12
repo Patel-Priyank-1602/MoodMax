@@ -20,6 +20,11 @@
 2. [End-to-End System Architecture](#-end-to-end-system-architecture)
 3. [Deep-Dive: Machine Learning Models & Why They Were Chosen](#-deep-dive-machine-learning-models--why-they-were-chosen)
 4. [Dataset & Data Engineering Pipeline](#-dataset--data-engineering-pipeline)
+   - 4.1 [Dataset Source & Provenance](#41-dataset-source--provenance)
+   - 4.2 [Split Partitions & Data Volume](#42-split-partitions--data-volume)
+   - 4.3 [Taxonomy Collapse (28 to 7 Ekman Classes)](#43-taxonomy-collapse-28-granular-categories--7-ekman-classes)
+   - 4.4 [Data Quality & Augmentation Strategies](#44-data-quality--augmentation-strategies)
+   - 4.5 [Dataset Reproduction & Pipeline Commands](#45-dataset-reproduction--pipeline-commands)
 5. [Performance, Metrics & Benchmark Analysis](#-performance-metrics--benchmark-analysis)
    - 5.1 [Model Training on Google Colab Cloud GPU (Tesla T4)](#51-model-training-on-google-colab-cloud-gpu-tesla-t4)
    - 5.2 [Overall Test-Set Evaluation Numbers](#52-overall-test-set-evaluation-numbers)
@@ -214,28 +219,86 @@ MoodMax is built upon a **strictly stateless, high-throughput in-memory pipeline
 
 ## 📊 Dataset & Data Engineering Pipeline
 
-MoodMax is trained on **Google Research's GoEmotions dataset**, the largest human-annotated emotion corpus for social conversational text.
+MoodMax is trained and evaluated on **Google Research's GoEmotions dataset**, the largest curated, human-annotated emotion corpus for conversational and social text.
 
-### Taxonomy Collapse: 28 Granular Categories $\to$ 7 Ekman Classes
-To eliminate severe class sparsity (e.g., *grief* has only ~300 examples across 58,000 texts) and crowd-worker labeling ambiguity, 28 fine-grained labels were mathematically folded into 7 standardized target classes:
+---
 
-| Target Class | Folded GoEmotions Sub-Categories | Annotation Focus | Test Set Support |
+### 4.1 Dataset Source & Provenance
+
+| Attribute | Specification |
+|---|---|
+| **Dataset Name** | **GoEmotions** (Simplified Configuration) |
+| **Published By** | **Google Research** (*Demszky et al., ACL 2020*) |
+| **Dataset Repository** | [`google-research-datasets/go_emotions`](https://huggingface.co/datasets/google-research-datasets/go_emotions) on Hugging Face |
+| **License** | **Apache 2.0** (Permissive commercial and research use) |
+| **Source Domain** | Human-annotated conversational Reddit comments (curated across diverse subreddits with strict quality & safety filters) |
+| **Annotation Nature** | **Multi-Label**: A single comment can express multiple emotions simultaneously (e.g., *Joy* + *Surprise*) |
+| **Total Corpus Size** | **58,009 raw comments** with 59,392 emotion annotations |
+
+---
+
+### 4.2 Split Partitions & Data Volume
+
+To prevent data leakage, comments are partitioned into strictly disjoint, held-out splits:
+
+| Split Partition | File Location | Row Count | Positive Label Instances | Purpose |
+|---|---|---|---|---|
+| **Training Split** | `data/processed/train_collapsed.csv` | **43,410** | 47,512 labels | Primary model training & weight optimization |
+| **Validation Split** | `data/processed/val_collapsed.csv` | **5,426** | 5,938 labels | Early stopping, hyperparameter tuning & threshold sweeps |
+| **Held-Out Test Split** | `data/processed/test_collapsed.csv` | **5,427** | 5,942 labels | Final unbiased model benchmarking & evaluation |
+| **Corpus Total** | — | **54,263** | **59,392 labels** | Complete production dataset |
+
+---
+
+### 4.3 Taxonomy Collapse: 28 Granular Categories $\to$ 7 Ekman Classes
+
+GoEmotions includes 27 fine-grained emotion labels plus `neutral`. Because rare emotions like *grief* or *embarrassment* have fewer than 300 instances across the entire corpus, training directly on 28 classes causes severe sparsity and high annotation variance. 
+
+We mathematically collapse all 28 granular categories into **7 standardized Ekman fundamental emotion classes** plus `neutral`:
+
+| Target Class | Folded GoEmotions Sub-Categories (28 Original) | Business & Annotation Focus | Test Set Support |
 |---|---|---|---|
-| **`joy`** | `admiration`, `amusement`, `approval`, `excitement`, `gratitude`, `joy`, `love`, `optimism`, `pride`, `relief` | Positive customer sentiment, brand love, delight | **1,940** |
-| **`sadness`** | `disappointment`, `embarrassment`, `grief`, `remorse`, `sadness` | Churn risk, sorrow, let-down experiences | **345** |
-| **`anger`** | `anger`, `annoyance`, `disapproval` | High-priority escalation, support friction | **726** |
-| **`fear`** | `fear`, `nervousness` | Security hesitation, payment anxiety | **98** |
-| **`surprise`** | `curiosity`, `realization`, `surprise` | Unexpected behavior, novel feature discovery | **677** |
-| **`disgust`** | `disgust` | Strong product revulsion, brand distaste | **159** |
-| **`neutral`** | `neutral` | Informational queries, factual statements | **1,997** |
-| **Total** | *28 classes collapsed* | *Ekman-standardized multi-label vector* | **5,942 labels** |
+| **`joy`** | `admiration`, `amusement`, `approval`, `excitement`, `gratitude`, `joy`, `love`, `optimism`, `pride`, `relief` | Positive customer sentiment, brand delight, satisfaction | **1,940** (32.6%) |
+| **`neutral`** | `neutral`, `desire`, `caring` | Informational inquiries, factual statements, general text | **1,997** (33.6%) |
+| **`anger`** | `anger`, `annoyance`, `disapproval` | Escalation risk, customer friction, frustration | **726** (12.2%) |
+| **`surprise`** | `curiosity`, `realization`, `surprise`, `confusion` | Unexpected behavior, novelty, sudden realization | **677** (11.4%) |
+| **`sadness`** | `sadness`, `disappointment`, `grief`, `remorse` | Sorrow, churn risk, let-down experience | **345** (5.8%) |
+| **`disgust`** | `disgust`, `embarrassment` | Severe distaste, revulsion, brand rejection | **159** (2.7%) |
+| **`fear`** | `fear`, `nervousness` | Payment anxiety, security concerns, hesitation | **98** (1.6%) |
+| **Total** | *28 original labels collapsed* | *Ekman multi-label vector* | **5,942 instances** |
 
-### Multilingual Augmentation Strategy
-To provide high accuracy on non-English inputs without recurring API costs:
-1. Stratified sampling of balanced rows across all 7 classes from the collapsed training split.
-2. Offline batch machine translation using local **Helsinki-NLP MarianMT** models (`opus-mt-en-hi`, `opus-mt-en-es`, `opus-mt-en-fr`).
-3. Concatenated and trained alongside English samples with language tags.
-4. Production inference fallback pipeline: Non-English text detected by fastText is translated to English on-the-fly via high-throughput HTTP bridges to maximize Transformer attention fidelity.
+---
+
+### 4.4 Data Quality & Augmentation Strategies
+
+1. **Targeted Rare-Class Oversampling (2.5x in Phase 4 Retraining):**
+   - Rare classes (*fear*, *disgust*, *sadness*) represent only 1.6%–5.8% of the dataset.
+   - Using PyTorch's `WeightedRandomSampler`, samples with positive signals for rare classes were dynamically oversampled at a **2.5x rate** during Colab training. This improved feature representation without inflating dataset storage.
+
+2. **Curated Factual Hard Negatives (`data/scripts/add_hard_negatives.py`):**
+   - Neural models can mistakenly assign negative emotions (*fear* or *sadness*) to factual statements simply because they lack positive adjectives.
+   - We curated domain-neutral declarative sentences (meeting times, server updates, transit schedules, technical facts) explicitly labeled as `neutral=1` (and `0` for all other emotions) to enforce rigid decision boundaries on matter-of-fact statements.
+
+3. **Multilingual Synthetic Augmentation (`translate_augment.py`):**
+   - Balanced samples across all 7 emotion classes were machine-translated into Hindi, Spanish, and French using offline **Helsinki-NLP MarianMT** models (`opus-mt-en-hi`, `opus-mt-en-es`, `opus-mt-en-fr`).
+   - Augments the underlying `distilbert-base-multilingual-cased` embeddings with non-English conversational idioms.
+
+---
+
+### 4.5 Dataset Reproduction & Pipeline Commands
+
+Anyone can regenerate the exact dataset splits from scratch with three commands:
+
+```bash
+# 1. Download GoEmotions simplified raw dataset from Hugging Face
+python data/scripts/download_goemotions.py
+
+# 2. Collapse 28 granular categories into 7 Ekman classes and create train/val/test splits
+python data/scripts/collapse_labels.py
+
+# 3. (Optional) Inject curated hard negatives to anchor neutral decision boundaries
+python data/scripts/add_hard_negatives.py
+```
 
 <p align="right"><a href="#top">⬆ Back to Top</a></p>
 
