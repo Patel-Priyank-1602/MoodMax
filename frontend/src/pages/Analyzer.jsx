@@ -32,6 +32,47 @@ export default function Analyzer() {
     }
   };
 
+  const handleDownloadCsv = () => {
+    if (!result) return;
+
+    const emotionKeys = ['joy', 'sadness', 'anger', 'fear', 'surprise', 'disgust', 'neutral'];
+    const headers = [
+      'Text',
+      'Sentiment',
+      'Confidence',
+      'Dominant Emotion',
+      'Language',
+      ...emotionKeys.map((e) => `Emotion_${e.charAt(0).toUpperCase() + e.slice(1)}`),
+    ];
+
+    const escapeCsv = (str) => {
+      if (str == null) return '""';
+      const text = String(str).replace(/"/g, '""');
+      return `"${text}"`;
+    };
+
+    const scores = result.emotions || {};
+    const row = [
+      escapeCsv(result.input_text),
+      escapeCsv(result.sentiment?.label || ''),
+      result.sentiment?.score != null ? (result.sentiment.score * 100).toFixed(1) + '%' : '',
+      escapeCsv(result.dominant_emotion || ''),
+      escapeCsv((result.detected_lang || '').toUpperCase()),
+      ...emotionKeys.map((e) => (scores[e] != null ? (scores[e] * 100).toFixed(1) + '%' : '')),
+    ].join(',');
+
+    const csvContent = '\uFEFF' + [headers.join(','), row].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `moodmax_analysis.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="analyzer-page" id="analyzer-page">
       <div className="page-header">
@@ -74,7 +115,7 @@ export default function Analyzer() {
                 />
               </div>
 
-              {/* Quick stats */}
+              {/* Quick stats with CSV download button */}
               <div className="quick-stats glass-card animate-fade-in-up">
                 <div className="quick-stats-row">
                   <div className="stat-item">
@@ -84,18 +125,27 @@ export default function Analyzer() {
                   <div className="stat-divider"></div>
                   <div className="stat-item">
                     <span className="stat-value highlight-green">
-                      {Object.entries(result.emotions)
+                      {Object.entries(result.emotions || {})
                         .filter(([, s]) => s > 0.1).length}
                     </span>
                     <span className="stat-label">Active Emotions</span>
                   </div>
                 </div>
                 <div className="quick-stats-divider-h"></div>
-                <div className="quick-stats-row">
-                  <div className="stat-item">
-                    <span className="stat-value">#{result.id}</span>
-                    <span className="stat-label">Analysis ID</span>
-                  </div>
+                <div className="quick-stats-actions">
+                  <button
+                    type="button"
+                    className="btn btn-download-csv w-full"
+                    onClick={handleDownloadCsv}
+                    id="download-single-csv-button"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                      <polyline points="7 10 12 15 17 10"/>
+                      <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    <span>Download CSV</span>
+                  </button>
                 </div>
               </div>
             </div>

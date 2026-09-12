@@ -90,6 +90,35 @@
   background: rgba(38, 127, 75, 0.08);
 }
 
+.quick-stats-actions {
+  width: 100%;
+}
+
+.quick-stats-actions .btn-download-csv {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1B6539;
+  background: #EAF5EE;
+  border: 1px solid rgba(38, 127, 75, 0.2);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.quick-stats-actions .btn-download-csv:hover {
+  background: #267F4B;
+  color: #FFFFFF;
+  border-color: #267F4B;
+  box-shadow: 0 4px 14px rgba(38, 127, 75, 0.25);
+  transform: translateY(-1px);
+}
+
 .stat-item {
   display: flex;
   flex-direction: column;

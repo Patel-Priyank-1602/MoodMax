@@ -1,6 +1,6 @@
 /**
  * MoodMax API Client
- * Handles all backend communication.
+ * Pure stateless backend communication.
  */
 
 import axios from 'axios';
@@ -12,7 +12,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 60000, // 60s for batch processing
+  timeout: 120000, // 120s for larger batch processing
 });
 
 /**
@@ -24,7 +24,8 @@ export async function analyzeText(text) {
 }
 
 /**
- * POST /api/analyze/batch — Upload CSV for batch analysis
+ * POST /api/analyze/batch — Upload CSV for direct batch analysis
+ * Returns { filename, summary, results } directly
  */
 export async function analyzeBatch(file) {
   const formData = new FormData();
@@ -32,50 +33,6 @@ export async function analyzeBatch(file) {
   const response = await api.post('/api/analyze/batch', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
-  return response.data;
-}
-
-/**
- * GET /api/batch/:id — Get batch job status
- */
-export async function getBatchStatus(batchJobId) {
-  const response = await api.get(`/api/batch/${batchJobId}`);
-  return response.data;
-}
-
-/**
- * GET /api/batch/:id/results — Get individual results for a batch job
- */
-export async function getBatchResults(batchJobId) {
-  const response = await api.get(`/api/batch/${batchJobId}/results`);
-  return response.data;
-}
-
-/**
- * GET /api/history — Get paginated analysis history
- */
-export async function getHistory({ limit = 20, offset = 0, search = '' } = {}) {
-  const params = { limit, offset };
-  if (search) params.search = search;
-  const response = await api.get('/api/history', { params });
-  return response.data;
-}
-
-/**
- * GET /api/history/:id — Get single analysis detail
- */
-export async function getAnalysisDetail(id) {
-  const response = await api.get(`/api/history/${id}`);
-  return response.data;
-}
-
-/**
- * GET /api/analytics/summary — Get analytics dashboard data
- */
-export async function getAnalyticsSummary(batchJobId = null) {
-  const params = {};
-  if (batchJobId) params.batch_job_id = batchJobId;
-  const response = await api.get('/api/analytics/summary', { params });
   return response.data;
 }
 

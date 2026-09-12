@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import FileUploader from '../components/FileUploader';
-import { analyzeBatch, getBatchStatus, getBatchResults, getAnalyticsSummary } from '../api/client';
+import { analyzeBatch } from '../api/client';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   PieChart, Pie,
@@ -25,47 +25,25 @@ const EMOTION_COLORS = {
 
 export default function Batch() {
   const [isLoading, setIsLoading] = useState(false);
-  const [batchJob, setBatchJob] = useState(null);
+  const [filename, setFilename] = useState(null);
   const [summary, setSummary] = useState(null);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
-
-  const pollStatus = useCallback(async (jobId) => {
-    try {
-      const status = await getBatchStatus(jobId);
-      setBatchJob(status);
-
-      if (status.status === 'done') {
-        const [analytics, batchResults] = await Promise.all([
-          getAnalyticsSummary(jobId),
-          getBatchResults(jobId),
-        ]);
-        setSummary(analytics);
-        setResults(batchResults);
-        setIsLoading(false);
-      } else if (status.status === 'failed') {
-        setError('Batch job failed. Check the backend logs.');
-        setIsLoading(false);
-      } else {
-        setTimeout(() => pollStatus(jobId), 2000);
-      }
-    } catch {
-      setError('Failed to check batch status.');
-      setIsLoading(false);
-    }
-  }, []);
 
   const handleUpload = async (file) => {
     setIsLoading(true);
     setError(null);
     setSummary(null);
     setResults(null);
-    setBatchJob(null);
+    setFilename(file.name);
 
     try {
-      const result = await analyzeBatch(file);
-      setBatchJob(result);
-      pollStatus(result.batch_job_id);
+      const data = await analyzeBatch(file);
+      setSummary(data.summary);
+      setResults(data.results);
+      if (data.filename) {
+        setFilename(data.filename);
+      }
     } catch (err) {
       console.error('Batch upload failed:', err);
       if (err.response?.data?.detail) {
@@ -73,8 +51,9 @@ export default function Batch() {
       } else if (err.code === 'ERR_NETWORK') {
         setError('Cannot connect to backend. Make sure the server is running.');
       } else {
-        setError('Batch upload failed. Please try again.');
+        setError('Batch analysis failed. Please verify your CSV format.');
       }
+    } finally {
       setIsLoading(false);
     }
   };
@@ -106,7 +85,6 @@ export default function Batch() {
       'Dominant Emotion',
       'Language',
       ...emotionKeys.map((e) => `Emotion_${e.charAt(0).toUpperCase() + e.slice(1)}`),
-      'Created At',
     ];
 
     const escapeCsv = (str) => {
@@ -125,7 +103,6 @@ export default function Batch() {
         escapeCsv(item.dominant_emotion || ''),
         escapeCsv((item.detected_lang || '').toUpperCase()),
         ...emotionKeys.map((e) => (scores[e] != null ? (scores[e] * 100).toFixed(1) + '%' : '')),
-        escapeCsv(item.created_at || ''),
       ].join(',');
     });
 
@@ -133,9 +110,10 @@ export default function Batch() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    const filename = `moodmax_batch_analysis_${batchJob?.batch_job_id || batchJob?.id || 'export'}.csv`;
+    const baseName = filename ? filename.replace(/\.[^/.]+$/, "") : "batch";
+    const downloadName = `moodmax_${baseName}_analysis.csv`;
     link.setAttribute('href', url);
-    link.setAttribute('download', filename);
+    link.setAttribute('download', downloadName);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -147,7 +125,8 @@ export default function Batch() {
       <div className="page-header">
         <h1 className="page-title">Batch <span className="title-accent">Analysis</span></h1>
         <p className="page-subtitle">
-          Upload a CSV file with a "text" column for bulk sentiment & emotion analysis.
+          Upload a CSV file with a "text" column for instant sentiment & emotion analysis.
+          Results are computed in-memory and can be downloaded as CSV.
         </p>
       </div>
 
@@ -207,7 +186,7 @@ export default function Batch() {
                   <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
                 </svg>
               </span>
-              <span className="dashboard-stat-value stat-val-lang">{Object.keys(summary.top_languages).length}</span>
+              <span className="dashboard-stat-value stat-val-lang">{Object.keys(summary.top_languages || {}).length}</span>
               <span className="dashboard-stat-label">Languages</span>
             </div>
           </div>
@@ -275,7 +254,7 @@ export default function Batch() {
       {results && results.length > 0 && (
         <div className="batch-results-section animate-fade-in-up">
           <div className="batch-results-header">
-            <h3 className="chart-card-title">Individual Results</h3>
+            <h3 className="chart-card-title">Analysis Results ({results.length})</h3>
             <button
               type="button"
               className="btn btn-download-csv"
@@ -304,7 +283,7 @@ export default function Batch() {
               </thead>
               <tbody>
                 {results.map((item, idx) => (
-                  <tr key={item.id}>
+                  <tr key={idx}>
                     <td className="col-num">{idx + 1}</td>
                     <td className="col-text">
                       <span className="result-text-cell" title={item.input_text}>

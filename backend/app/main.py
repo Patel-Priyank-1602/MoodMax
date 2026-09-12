@@ -1,8 +1,8 @@
 """
 MoodMax Backend — FastAPI Application Entry Point.
 
-Multilingual Sentiment & Emotion Analysis API.
-Loads ML models on startup, serves analysis endpoints.
+Multilingual Sentiment & Emotion Analysis API (Pure Stateless).
+Loads ML models on startup, serves stateless analysis endpoints.
 
 Run with: uvicorn app.main:app --reload --port 8000
 """
@@ -13,9 +13,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .db.database import init_db
 from .ml.pipeline import ml_pipeline
-from .routers import analyze, batch, history, analytics
+from .routers import analyze, batch
 
 # Configure logging
 logging.basicConfig(
@@ -30,10 +29,6 @@ async def lifespan(app: FastAPI):
     """App startup/shutdown lifecycle."""
     # Startup
     logger.info("Starting MoodMax backend...")
-
-    # Initialize database tables
-    logger.info("Initializing database...")
-    await init_db()
 
     # Load ML models
     logger.info("Loading ML models (this may take a minute on first run)...")
@@ -68,8 +63,6 @@ app.add_middleware(
 # Register routers
 app.include_router(analyze.router)
 app.include_router(batch.router)
-app.include_router(history.router)
-app.include_router(analytics.router)
 
 
 @app.get("/", tags=["health"])
