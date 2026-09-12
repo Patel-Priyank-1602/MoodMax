@@ -1,0 +1,32 @@
+{
+  "model_name": "distilbert-base-multilingual-cased",
+  "target_classes": [
+    "joy",
+    "sadness",
+    "anger",
+    "fear",
+    "surprise",
+    "disgust",
+    "neutral"
+  ],
+  "phase": "Phase 4 \u2014 Targeted Retraining",
+  "oversample_factor": 2.5,
+  "rare_classes_oversampled": [
+    "fear",
+    "disgust",
+    "sadness"
+  ],
+  "epochs_requested": 8,
+  "epochs_trained": 8.0,
+  "batch_size": 32,
+  "gradient_accumulation": 1,
+  "max_seq_length": 128,
+  "learning_rate": 2e-05,
+  "class_weighting": "sqrt_inverse",
+  "patience": 2,
+  "use_augmented": false,
+  "test_macro_f1": 0.6024952189922308,
+  "test_micro_f1": 0.6729062449572374,
+  "test_macro_precision": 0.5752271892267922,
+  "test_macro_recall": 0.6352899216286504
+}

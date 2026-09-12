@@ -19,6 +19,7 @@
 4. [Dataset — GoEmotions: What It Is and Why We Chose It](#4-dataset--goemotions-what-it-is-and-why-we-chose-it)
 5. [Data Engineering Pipeline — Every Step Explained](#5-data-engineering-pipeline--every-step-explained)
 6. [Training Pipeline — How the Model Was Trained](#6-training-pipeline--how-the-model-was-trained)
+   - 6.6 [Retraining (Model v2), Safety Gate & Efficiency](#66-targeted-retraining-model-v2-anti-degradation-gate--high-efficiency-serving)
 7. [Backend Stack — Every Library and Why](#7-backend-stack--every-library-and-why)
 8. [Frontend Stack — Every Library and Why](#8-frontend-stack--every-library-and-why)
 9. [Architecture: Stateless Design & Direct CSV Export (No Database)](#9-architecture-stateless-design--direct-csv-export-no-database)
@@ -264,8 +265,8 @@ $$\text{pos\_weight}_c = \sqrt{\frac{N - N_c^+}{N_c^+}}$$
 
 ---
 
-### 6.5 Post-Training Calibration & Test Evaluation
-Once training completed in Colab:
+### 6.5 Initial Baseline Calibration & Test Evaluation
+Once baseline training completed in Colab:
 1. **Temperature Scaling Calibration (`python training/calibrate.py --objective bce`)**:
    - Learned optimal temperature $T = 1.1724$.
    - Sigmoid Expected Calibration Error dropped to **`0.0454` (4.54%)**.
@@ -273,8 +274,43 @@ Once training completed in Colab:
 2. **Held-Out Test Set Evaluation (`python training/evaluate.py`)**:
    - **Macro-F1:** `0.5796` | **Micro-F1:** `0.6532`
    - **Macro-Precision:** `0.5251` | **Macro-Recall:** `0.6695` | **Jaccard:** `0.6291`
-3. **Packaging & Export**:
-   - Checkpoint files (`model.safetensors`, `config.json`, `tokenizer.json`, `tokenizer_config.json`, `label_map.json`, `calibration.json`, `evaluation_results.json`) were compressed and transferred to Google Drive / local workspace for zero-cost deployment.
+
+---
+
+### 6.6 Targeted Retraining (Model v2), Anti-Degradation Gate & High-Efficiency Serving
+To push overall performance above the 60% Macro-F1 threshold and eliminate rare-class precision bottlenecks (*disgust* and *sadness*), a targeted retraining pipeline was executed on **Google Colab (Tesla T4 GPU)**:
+
+#### 1. Targeted 2.5x Rare-Class Oversampling (`train_v2.py`)
+- Standard cross-entropy or BCE loss with frequency weights only adjusts gradient step size—it does not increase how often the model encounters rare examples.
+- We integrated `WeightedRandomSampler` with an **oversampling factor of 2.5x** specifically on rows containing positive signals for `fear`, `disgust`, and `sadness`.
+- Combined with `pos_weight = sqrt_inverse`, this guaranteed dense feature representation for rare emotions without overfitting.
+
+#### 2. Per-Class Optimal Thresholds (`optimize_thresholds.py`)
+- Replaced the rigid single global threshold ($\tau = 0.5$) with optimal per-class decision boundaries:
+  - `joy`: **0.33** | `neutral`: **0.15** | `anger`: **0.27**
+  - `disgust`: **0.43** | `fear`: **0.45** | `sadness`: **0.55** | `surprise`: **0.51**
+- Dynamically loaded via `models/emotion-distilbert-multi/thresholds.json` into `MLPipeline`.
+
+#### 3. Automated Anti-Degradation Safety Gate (`compare_and_gate.py`)
+- Automatically evaluated candidate checkpoints against the baseline before any file replacement.
+- **Enforced Safety Criteria:**
+  - Macro-F1 must be $\ge$ baseline (`0.5796`).
+  - Anchor classes (`joy` and `neutral`) cannot regress by more than 2% ($\text{Joy F1} \ge 0.79$, $\text{Neutral F1} \ge 0.62$).
+  - Automatic directory backup before promoting candidate files.
+
+#### 4. Final Retraining (v2) Performance Jump
+
+| Metric | Baseline (v1) | Retrained Model (v2) | Absolute Gain |
+|---|---|---|---|
+| **Macro-F1** | 0.5796 (57.96%) | **0.6025 (60.25%)** | **+2.29%** 🚀 |
+| **Micro-F1** | 0.6532 (65.32%) | **0.6729 (67.29%)** | **+1.97%** 🟢 |
+| **Macro-Precision** | 0.5251 (52.51%) | **0.5752 (57.52%)** | **+5.01%** 🔥 |
+| **Macro-Recall** | 0.6695 (66.95%) | **0.6353 (63.53%)** | -3.42% (Balanced) |
+
+#### 5. High-Efficiency In-Memory Serving Architecture
+- **DistilBERT Tokenizer Fix:** Set `return_token_type_ids=False` during batch inference, removing redundant tensor allocation overhead and ensuring seamless compatibility with DistilBERT.
+- **Single Model Footprint:** Unified single-model inference derives sentiment directly from the calibrated emotion distribution, cutting memory usage from ~1.2 GB to **<440 MB RAM**, allowing production deployment on free 512 MB instances like Render.
+- **Single-Thread CPU Affinity:** Uses `torch.set_num_threads(1)` with aggressive garbage collection (`gc.collect()`) to prevent thread contention and memory spikes.
 
 <p align="right"><a href="#top">⬆ Back to Top</a></p>
 

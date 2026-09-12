@@ -61,6 +61,7 @@ def evaluate_checkpoint(model_dir: Path, texts, true_labels, device, batch_size=
         for i in range(0, len(texts), batch_size):
             batch = texts[i : i + batch_size]
             enc = tokenizer(batch, padding=True, truncation=True, max_length=128, return_tensors="pt").to(device)
+            enc = {k: v for k, v in enc.items() if k != "token_type_ids"}
             logits = model(**enc).logits
             probs = torch.sigmoid(logits).cpu().numpy()
             all_probs.append(probs)
