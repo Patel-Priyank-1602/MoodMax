@@ -1,0 +1,8 @@
+{
+  "temperature": 1.1724,
+  "objective": "bce",
+  "sigmoid_ece_before": 0.0461,
+  "sigmoid_ece_after": 0.0454,
+  "softmax_ece_before": 0.218,
+  "softmax_ece_after": 0.1914
+}

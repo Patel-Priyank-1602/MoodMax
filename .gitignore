@@ -22,7 +22,14 @@ frontend/dist/
 *.sqlite3
 
 # ML Models (too large for git)
-models/emotion-distilbert-multi/
+models/emotion-distilbert-multi/*.safetensors
+models/emotion-distilbert-multi/*.bin
+models/emotion-distilbert-multi/checkpoints/
+models/emotion-distilbert-multi-v2/
+models/emotion-distilbert-distilled/
+models/**/*.npy
+models/**/*.csv
+models/**/tokenizer.json
 models/lid.176.bin
 models/*.bin
 models/*.pt

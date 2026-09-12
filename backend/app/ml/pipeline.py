@@ -64,6 +64,9 @@ class MLPipeline:
         self._emotion_available = False
         self._sentiment_available = False
         self._langdetect_available = False
+        self._per_class_thresholds = None  # Phase 1: per-class decision thresholds
+        self._per_class_temperatures = None  # Phase 3: per-class calibration temperatures
+        self._is_custom_model = False  # True when using fine-tuned model (not fallback)
 
     def load_models(self, model_dir: Optional[str] = None):
         """Load all ML models. Called once at app startup."""
@@ -115,7 +118,36 @@ class MLPipeline:
                     device=-1,
                 )
                 self._emotion_available = True
+                self._is_custom_model = True
                 logger.info(f"  Custom emotion model loaded from {emotion_model_path}")
+
+                # Load per-class thresholds (Phase 1) if available
+                thresholds_path = os.path.join(emotion_model_path, "thresholds.json")
+                if os.path.exists(thresholds_path):
+                    try:
+                        with open(thresholds_path) as f:
+                            thresholds_data = json.load(f)
+                            self._per_class_thresholds = thresholds_data.get("thresholds", None)
+                            if self._per_class_thresholds:
+                                logger.info(f"  Per-class thresholds loaded: {self._per_class_thresholds}")
+                    except Exception as e:
+                        logger.warning(f"  Failed to load per-class thresholds: {e}")
+
+                # Load per-class calibration (Phase 3) if available and accepted
+                per_class_calib_path = os.path.join(emotion_model_path, "calibration_per_class.json")
+                if os.path.exists(per_class_calib_path):
+                    try:
+                        with open(per_class_calib_path) as f:
+                            calib_data = json.load(f)
+                            if calib_data.get("decision") == "ACCEPTED":
+                                self._per_class_temperatures = calib_data.get("temperatures", None)
+                                if self._per_class_temperatures:
+                                    logger.info(f"  Per-class calibration loaded: {self._per_class_temperatures}")
+                            else:
+                                logger.info(f"  Per-class calibration found but decision={calib_data.get('decision')} — using global T.")
+                    except Exception as e:
+                        logger.warning(f"  Failed to load per-class calibration: {e}")
+
                 return
             except Exception as e:
                 logger.warning(f"  Failed to load custom emotion model: {e}")
@@ -216,7 +248,12 @@ class MLPipeline:
             return "en"
 
     def predict_emotions(self, text: str) -> dict[str, float]:
-        """Predict emotion distribution: {emotion: probability}."""
+        """Predict emotion distribution: {emotion: probability}.
+
+        Returns raw probability scores (not thresholded). Per-class thresholds
+        and calibration affect dominant_emotion selection but not the returned
+        score vector — this preserves granularity in the API response.
+        """
         if not self._emotion_available:
             return self._mock_emotions(text)
 
@@ -240,6 +277,27 @@ class MLPipeline:
             logger.error(f"Emotion prediction error: {e}")
 
         return self._mock_emotions(text)
+
+    def _resolve_dominant_emotion(self, emotion_scores: dict) -> str:
+        """Resolve dominant emotion using per-class thresholds if available.
+
+        When per-class thresholds are loaded (Phase 1), only emotions that
+        exceed their class-specific threshold are considered 'present'.
+        The dominant emotion is the highest-scoring present emotion.
+        If no emotion exceeds its threshold, fall back to the highest raw score.
+        """
+        if self._per_class_thresholds and self._is_custom_model:
+            # Filter to emotions that exceed their per-class threshold
+            present_emotions = {
+                emotion: score
+                for emotion, score in emotion_scores.items()
+                if score >= self._per_class_thresholds.get(emotion, 0.5)
+            }
+            if present_emotions:
+                return max(present_emotions, key=present_emotions.get)
+
+        # Fallback: highest raw score (original behavior)
+        return max(emotion_scores, key=emotion_scores.get)
 
     def predict_sentiment(self, text: str, emotion_scores: Optional[dict] = None) -> tuple[str, float]:
         """Predict sentiment: (label, score) using model or high-accuracy emotion derivation."""
@@ -330,8 +388,8 @@ class MLPipeline:
         # 3. Predict emotions using English-aligned model features
         emotion_scores = self.predict_emotions(inference_text)
 
-        # 4. Get dominant emotion
-        dominant_emotion = max(emotion_scores, key=emotion_scores.get)
+        # 4. Get dominant emotion (uses per-class thresholds if available)
+        dominant_emotion = self._resolve_dominant_emotion(emotion_scores)
 
         # 5. Predict sentiment (using model or emotion distribution)
         sentiment_label, sentiment_score = self.predict_sentiment(inference_text, emotion_scores=emotion_scores)

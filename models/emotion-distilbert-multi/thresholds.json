@@ -1,0 +1,15 @@
+{
+  "mode": "recall_weighted",
+  "beta": 1.5,
+  "thresholds": {
+    "joy": 0.33,
+    "sadness": 0.55,
+    "anger": 0.27,
+    "fear": 0.45,
+    "surprise": 0.51,
+    "disgust": 0.43,
+    "neutral": 0.15
+  },
+  "validation_macro_f1_before": 0.588477907553758,
+  "validation_macro_f1_after": 0.5937101812936729
+}

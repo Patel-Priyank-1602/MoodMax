@@ -110,7 +110,25 @@ def evaluate_model(args):
             print(f"  Progress: {min(i + batch_size, len(texts))}/{len(texts)}")
 
     all_probs = np.vstack(all_probs)
-    pred_labels = (all_probs > 0.5).astype(int)
+
+    # Load per-class thresholds if provided (Phase 1)
+    thresholds = None
+    if args.thresholds_file:
+        thresholds_path = Path(args.thresholds_file)
+        if thresholds_path.exists():
+            with open(thresholds_path) as f:
+                thresholds_data = json.load(f)
+                thresholds = thresholds_data.get("thresholds", None)
+                if thresholds:
+                    print(f"  Using per-class thresholds from {thresholds_path}")
+                    print(f"  Thresholds: {thresholds}")
+
+    if thresholds:
+        # Per-class thresholds
+        thresh_array = np.array([thresholds.get(cls, 0.5) for cls in TARGET_CLASSES])
+        pred_labels = (all_probs >= thresh_array).astype(int)
+    else:
+        pred_labels = (all_probs > 0.5).astype(int)
 
     # ─── Overall Metrics ───
     print("\n" + "=" * 60)
@@ -208,6 +226,8 @@ def main():
                         help="Evaluation batch size (default: 16)")
     parser.add_argument("--per_language", action="store_true",
                         help="Show per-language F1 breakdown")
+    parser.add_argument("--thresholds_file", type=str, default=None,
+                        help="Path to thresholds.json for per-class thresholds (Phase 1)")
     args = parser.parse_args()
     evaluate_model(args)
 
