@@ -1,10 +1,9 @@
 # Training dependencies for Google Colab (Tesla T4 GPU)
-torch>=2.0.0
+# PyTorch, CUDA, and NumPy are pre-installed in Colab; only add missing ML packages:
 transformers>=4.40.0
 accelerate>=0.28.0
 datasets>=2.18.0
 scikit-learn>=1.3.0
-pandas>=2.0.0
-numpy>=1.24.0,<2.0.0
 sentencepiece>=0.1.99
 protobuf>=3.20.0
+
