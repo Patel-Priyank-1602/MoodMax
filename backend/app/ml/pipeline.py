@@ -260,7 +260,7 @@ class MLPipeline:
         try:
             import torch
             with torch.no_grad():
-                results = self.emotion_pipeline(text[:512])
+                results = self.emotion_pipeline(text[:512], return_token_type_ids=False)
             if results and len(results) > 0:
                 scores = results[0] if isinstance(results[0], list) else results
                 emotion_dict = {}
