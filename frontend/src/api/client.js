@@ -37,6 +37,24 @@ export async function analyzeBatch(file) {
 }
 
 /**
+ * POST /api/analyze/aspects — Aspect-Based Sentiment & Emotion Analysis (ABSA)
+ */
+export async function analyzeAspects(text) {
+  const response = await api.post('/api/analyze/aspects', { text });
+  return response.data;
+}
+
+/**
+ * POST /api/analyze/batch/report — Generate Executive PDF Audit Report (pure in-memory streaming)
+ */
+export async function downloadBatchReport(batchData) {
+  const response = await api.post('/api/analyze/batch/report', batchData, {
+    responseType: 'blob',
+  });
+  return response.data;
+}
+
+/**
  * GET /health — Backend health check
  */
 export async function healthCheck() {
@@ -45,3 +63,4 @@ export async function healthCheck() {
 }
 
 export default api;
+

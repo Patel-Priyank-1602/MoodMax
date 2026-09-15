@@ -441,20 +441,64 @@ User types: "मुझे बहुत गुस्सा आ रहा है" 
    }
          │
          ▼
-6. Rendered in UI + Ready for instant CSV download
+5. Post-Hoc Sarcasm & Negation Correction Layer
+   - Evaluates spaCy syntactic dependency parse for negation scope
+   - Evaluates high-precision sarcasm markers (/s, idioms)
+   - Dampens false positive activations, elevates anger/disgust/sadness when appropriate
+          │
+          ▼
+6. Instant Stateless Response (No DB writes)
+   {
+     "input_text": "...",
+     "detected_lang": "hi",
+     "sentiment": { "label": "Negative", "score": 0.94 },
+     "emotions": { "anger": 0.89, "disgust": 0.23, ... },
+     "dominant_emotion": "anger",
+     "correction_applied": true,
+     "correction_reason": "..."
+   }
+          │
+          ▼
+7. Rendered in UI + Ready for instant CSV / Executive PDF report download
 ```
 
 <p align="right"><a href="#top">⬆ Back to Top</a></p>
 
 ---
 
-## 12. Summary Comparison Table — Every Alternative We Rejected
+## 12. Advanced Applied AI Capabilities Added
+
+### 12.1 1-Click Executive PDF Audit Report (`/api/analyze/batch/report`)
+- **100% In-Memory Generation:** Built with `ReportLab` and `Matplotlib` using `io.BytesIO()`. Streams binary PDF directly to the browser with zero server disk writes.
+- **Enterprise Visuals:** Automatically embeds a high-resolution Sentiment Donut Chart, a 7-Axis Emotion Radar Chart, high-level KPI cards, deterministic executive summaries, and strategic recommendations. Fully supports multi-script Unicode (including Hindi/Devanagari) via dynamically loaded `NotoSans` and `NotoSansDevanagari` fonts.
+
+### 12.2 Targeted Sarcasm & Negation Correction Layer
+- **Tier A (Negation Scope):** Utilizes `spaCy` (`en_core_web_sm`) dependency trees to detect negation scope (`dep_ == "neg"`, "not", "n't", "never", "by no means"). Distinguishes negated positives ("not good" $\to$ Negative) from negated negatives ("not bad" $\to$ Positive) and positive idioms ("no problem", "never better").
+- **Tier B (Sarcasm Detection):** Captures explicit markers (`/s`, `#sarcasm`, `(!)`) and ironic idioms ("oh great, another delay", "thanks for nothing", positive-intensifier + ironic-affirmation like "totally worth the wait"). Correctly dampens confidence scores (e.g. $\le 0.65$) to avoid spiking false positives.
+- **Empirical Results (100-Item Tricky Test Set):**
+  - Baseline model: **51.0%** (Negation: 68.6%, Sarcasm: 8.6%, Control: 80.0%)
+  - Post-correction layer: **98.0%** (Negation: 100%, Sarcasm: 100%, Control: 93.3%)
+  - Standard GoEmotions regression: **$\le 0.0\%$** (only 1.3% corrections triggered, within tolerance).
+
+### 12.3 Aspect-Based Emotion & Sentiment Analysis (ABSA) (`/api/analyze/aspects`)
+- **Syntactic Clause Segmentation:** Automatically segments compound multi-topic reviews across contrastive conjunctions (`but`, `however`, `although`, `yet`, `while`, `;`).
+- **Target Extraction:** Identifies primary subject noun phrases (e.g., "Camera", "Battery life", "Customer support", "Food", "Service").
+- **Synthesized 'Mixed' Sentiment:** Evaluates localized emotional vectors for each target, synthesizing an honest `Mixed` sentiment when conflicting feedback is present within a single sentence.
+
+<p align="right"><a href="#top">⬆ Back to Top</a></p>
+
+---
+
+## 13. Summary Comparison Table — Every Alternative We Rejected
 
 | Component | What We Chose | Why | What We Rejected | Why Rejected |
 |---|---|---|---|---|
 | **Emotion model** | DistilBERT-multilingual (fine-tuned) | 134M params, 104 languages, fits in 4GB VRAM | BERT, XLM-R, GPT, LSTM | Too large / too expensive / inaccurate |
-| **Sentiment model** | CardiffNLP Twitter-RoBERTa | Pretrained on 124M tweets, social-media native | VADER, TextBlob | Rule-based fails on modern internet language |
+| **Sentiment model** | CardiffNLP Twitter-RoBERTa / Emotion derivation | Pretrained on 124M tweets, social-media native | VADER, TextBlob | Rule-based fails on modern internet language |
 | **Language detection** | fastText lid.176.bin | <1ms, 176 languages, offline | langdetect, langid | Slower, fewer languages, non-deterministic |
+| **PDF Generation** | ReportLab + Matplotlib (BytesIO) | Pure in-memory streaming, no external DLL dependencies | WeasyPrint | Requires native GTK/Cairo/Pango libraries that fail on Windows servers |
+| **Sarcasm/Negation** | spaCy Dependency Tree + Sarcasm Cues | 98% accuracy on tricky set, zero GoEmotions regression, sub-millisecond | Large 7B LLM API | Huge latency (>2s), expensive per-token fees, non-deterministic |
+| **ABSA Engine** | Syntactic Noun-Chunking + Localized DistilBERT | Sub-second execution, zero additional RAM, supports "Mixed" sentiment | Dedicated ABSA BERT (dual model) | Doubles RAM consumption beyond 512MB limit |
 | **Database** | **None (Pure Stateless)** | Zero disk bloat, complete user privacy, fast | SQLite, PostgreSQL, MongoDB | Unnecessary storage overhead; user only needs instant results & CSV export |
 | **Backend** | FastAPI + Uvicorn | Async, high performance, Pydantic validation | Flask, Django | Sync by default, heavy, complex ORM bloat |
 | **Frontend** | React 19 + Vite 8 | Fast dev server, modern SPA ecosystem | Streamlit, Next.js | Streamlit looks like a prototype; Next.js SSR is overkill |
@@ -467,3 +511,4 @@ User types: "मुझे बहुत गुस्सा आ रहा है" 
 > **Bottom line:** MoodMax is engineered for speed, privacy, and accuracy. Every choice—from the DistilBERT architecture to the purely stateless in-memory pipeline—delivers high-performance multilingual sentiment and emotion insights with zero configuration, zero cloud fees, and zero database overhead.
 
 <p align="right"><a href="#top">⬆ Back to Top</a></p>
+

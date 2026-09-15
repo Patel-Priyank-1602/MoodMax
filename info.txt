@@ -1,0 +1,271 @@
+================================================================================
+                         PROJECT MOODMAX - PROJECT SUMMARY
+        Multilingual Social Media Sentiment & Granular Emotion Analysis
+================================================================================
+
+1. PROJECT OVERVIEW
+--------------------------------------------------------------------------------
+Project Name : MoodMax
+Domain       : Natural Language Processing (NLP) / Deep Learning / Full-Stack Web
+Core Purpose : A production-ready, privacy-first, stateless web platform for
+               multilingual sentiment and granular emotion analysis of text and
+               bulk social media datasets (100+ languages supported).
+
+Key Deliverable:
+- Custom fine-tuned Multilingual Transformer model for 7-class emotion detection.
+- Pretrained Social Transformer model for 3-class sentiment detection.
+- Sub-millisecond language identification across 176 languages.
+- Compound sentence Aspect-Based Sentiment Analysis (ABSA).
+- Batch CSV upload with real-time analytics and in-memory CSV export.
+- Automated Executive PDF Audit Report generation with Devanagari/multilingual
+  font rendering.
+- Interactive modern React dashboard (radar charts, distribution gauges, metrics).
+
+
+================================================================================
+2. PROBLEM STATEMENT & MOTIVATION
+================================================================================
+Why Sentiment Alone Is Insufficient:
+- Traditional sentiment tools classify text only as "Positive", "Negative", or "Neutral".
+- This misses critical emotional context:
+  * "My flight got cancelled and nobody is helping!" -> Negative (Anger/Frustration).
+  * "I'm terrified about tomorrow's surgery." -> Negative (Fear/Anxiety).
+  * "I can't believe I won the lottery!" -> Positive (Surprise + Joy).
+- Emotion is the actionable signal needed for brand intelligence, customer
+  experience, mental wellness monitoring, and social moderation.
+
+Why Multilingual?
+- Modern social media (Twitter/X, Reddit, Instagram, YouTube) is inherently
+  multilingual and code-mixed. English-only tools fail on global text.
+- MoodMax natively processes text across 100+ languages without relying on
+  expensive cloud translation APIs.
+
+Why Open-Weight / Self-Hosted Models?
+- Cost: 100% free to run, zero per-token API charges (no OpenAI/Anthropic bills).
+- Privacy: User data and corporate CSVs stay in-memory on local/private servers.
+- Deterministic: Stable, reproducible predictions with zero vendor lock-in.
+
+
+================================================================================
+3. MACHINE LEARNING ARCHITECTURE & MODELS
+================================================================================
+
+A) Emotion Detection Model (Primary Custom Deliverable)
+   - Base Architecture : distilbert-base-multilingual-cased (Transformer)
+   - Parameters        : ~135.3 Million parameters (6 layers, 768 hidden dim, 12 heads)
+   - Classification    : Multi-label classification (7 output logits with Sigmoid)
+   - Target Emotions   : Joy, Sadness, Anger, Fear, Surprise, Disgust, Neutral
+   - Loss Function     : BCEWithLogitsLoss (Binary Cross-Entropy with Logits)
+   - Why Multi-Label?  : Human emotions are not mutually exclusive. A single
+                         sentence can express both Anger and Disgust simultaneously.
+   - Fallback Engine   : j-hartmann/emotion-english-distilroberta-base
+
+B) Sentiment Analysis Model
+   - Model             : cardiffnlp/twitter-roberta-base-sentiment-latest
+   - Architecture      : RoBERTa Base fine-tuned on ~124M social media tweets
+   - Classes           : Negative, Neutral, Positive (3-class Softmax)
+   - Why Chosen?       : Exceptionally accurate on social slang, emojis, informal
+                         grammar, and short-form text.
+
+C) Language Identification Engine
+   - Primary           : fastText (lid.176.bin compressed model)
+   - Speed             : Under 1 millisecond per sentence
+   - Coverage          : 176 languages
+   - Fallback          : langdetect library
+
+D) Aspect-Based Sentiment Analysis (ABSA)
+   - Compound and conjunctive sentences (e.g. "Food was delicious but the service was terrible")
+     are split into distinct clauses and noun-phrase aspects.
+   - Evaluates localized sentiment for each target aspect independently, yielding
+     a comprehensive "Mixed" sentiment profile when conflicting polarities occur.
+
+
+================================================================================
+4. DATASET & TRAINING PIPELINE
+================================================================================
+1. Source Dataset:
+   - Google GoEmotions (58,000 carefully curated Reddit comments with human labels).
+
+2. Label Engineering & Category Collapse:
+   - Original 28 fine-grained emotions mapped into 7 standardized Ekman emotion
+     categories (Joy, Sadness, Anger, Fear, Surprise, Disgust, Neutral).
+   - Ambiguous or low-agreement labels were pruned for statistical robustness.
+
+3. Multilingual Data Augmentation:
+   - English GoEmotions samples were augmented with translated variants (e.g.,
+     Hindi, Spanish, French) using MarianMT (Helsinki-NLP) models.
+
+4. Training Specs:
+   - Hardware          : GPU-accelerated PyTorch training
+   - Optimizer         : AdamW with linear learning rate warmup and decay
+   - Evaluation Metrics: Micro-F1, Macro-F1, Precision, Recall, and AUC-ROC
+   - Safety Gate       : Anti-degradation regression testing to ensure no
+                         performance drops across any individual emotion category.
+
+
+================================================================================
+5. SYSTEM ARCHITECTURE & PRIVACY-FIRST DESIGN
+================================================================================
+Architecture Type: Pure Stateless Web Application (Zero Permanent Storage)
+
+- Why No Database?
+  1. Data Privacy: User text and confidential corporate datasets uploaded via
+     CSV are evaluated in memory and immediately discarded after request completion.
+  2. Zero Disk Overhead: No storage bloat, no database migrations, and no
+     connection pool bottlenecks.
+  3. Scalability: The stateless API can be scaled horizontally behind any load
+     balancer effortlessly.
+
+- Data Export:
+  * In-browser instant CSV generation and download.
+  * Server-side in-memory streaming of Executive PDF Audit Reports with
+    embedded charts, emotion distributions, and Devanagari script support.
+
+
+================================================================================
+6. COMPLETE TECHNOLOGY STACK
+================================================================================
+
+BACKEND:
+- Language        : Python 3.11
+- Framework       : FastAPI (Asynchronous, high-performance REST API)
+- ASGI Server     : Uvicorn
+- Deep Learning   : PyTorch, Hugging Face Transformers
+- Language ID     : fastText, langdetect
+- Data Processing : Pandas, NumPy
+- PDF Generation  : ReportLab (with custom TrueType font loading for UTF-8/Devanagari)
+- Data Validation : Pydantic v2
+
+FRONTEND:
+- Framework       : React 19 (Single Page Application)
+- Build Tool      : Vite (Ultra-fast HMR and bundling)
+- Styling         : Vanilla CSS (Custom design system, glassmorphism, responsive)
+- Data Viz        : Chart.js, react-chartjs-2 (Radar, Bar, Doughnut charts)
+- HTTP Client     : Axios
+- Icons           : Lucide React
+
+
+================================================================================
+7. CORE APPLICATION MODULES & USER FLOWS
+================================================================================
+
+1. Single Text Analyzer (`/` or `/analyzer`):
+   - Real-time character counter and input validation.
+   - Dual output: Sentiment Gauge (Negative to Positive) + Emotion Radar/Bar chart.
+   - Displays detected language and confidence scores.
+   - Aspect breakdowns for complex compound sentences.
+   - "Download CSV" button for instant single-result export.
+
+2. Batch CSV Processing (`/batch`):
+   - Drag-and-drop CSV upload.
+   - In-memory bulk inference over hundreds of rows with progress indicator.
+   - Summary statistics: Overall sentiment breakdown, dominant emotion percentage,
+     language distribution.
+   - Interactive table with per-row sorting, search, and filtering.
+   - "Download Analyzed CSV" (complete results).
+   - "Download PDF Audit Report" (multi-page executive summary with charts).
+
+
+================================================================================
+8. PROJECT DIRECTORY STRUCTURE
+================================================================================
+MoodMax/
+|-- backend/
+|   |-- app/
+|   |   |-- main.py              # FastAPI app initialization, CORS, health endpoints
+|   |   |-- schemas.py           # Pydantic data validation schemas
+|   |   |-- routers/
+|   |   |   |-- analyze.py       # Single text & ABSA analysis endpoints
+|   |   |   |-- batch.py         # Batch CSV processing & PDF report generation
+|   |   |-- ml/
+|   |       |-- pipeline.py      # ML Pipeline manager (model loading & inference)
+|   |       |-- aspects.py       # Clause parsing & aspect sentiment extraction
+|   |       |-- report.py        # ReportLab PDF report generation logic
+|   |-- requirements.txt         # Backend Python dependencies
+|
+|-- frontend/
+|   |-- src/
+|   |   |-- api/client.js        # Axios API client wrapper
+|   |   |-- components/          # Reusable UI components (EmotionChart, TextInput, etc.)
+|   |   |-- pages/
+|   |   |   |-- Analyzer.jsx     # Single text analyzer view
+|   |   |   |-- Batch.jsx        # Batch CSV processing view
+|   |   |-- App.jsx              # Main React layout and tab navigation
+|   |   |-- index.css            # Core design tokens and global styles
+|   |-- package.json             # Frontend npm dependencies
+|   |-- vite.config.js           # Vite development server config
+|
+|-- data/
+|   |-- scripts/                 # GoEmotions processing, label collapsing, translation
+|
+|-- models/                      # Fine-tuned model checkpoints
+|
+|-- training/
+|   |-- train_v2.py              # Model training script with anti-degradation gate
+|
+|-- PRD.md                       # Product Requirements Document
+|-- info.md                      # Comprehensive technical documentation
+`-- info.txt                     # High-level project summary for mentor review
+
+
+================================================================================
+9. HOW TO RUN THE PROJECT LOCALLY
+================================================================================
+
+PREREQUISITES:
+- Python 3.10 or 3.11 installed
+- Node.js 18+ and npm installed
+
+STEP 1: Start the Backend Server
+   cd backend
+   pip install -r requirements.txt
+   uvicorn app.main:app --reload --port 8000
+   (Backend API will run at http://localhost:8000)
+   (Swagger Interactive API Docs: http://localhost:8000/docs)
+
+STEP 2: Start the Frontend Application
+   cd frontend
+   npm install
+   npm run dev
+   (Frontend will run at http://localhost:5173)
+
+STEP 3: Test the Application
+   - Open http://localhost:5173 in any modern web browser.
+   - Enter text in English, Hindi, Spanish, etc., and click "Analyze".
+   - Or switch to "Batch" tab, upload any CSV file with a text column, and test
+     batch processing and PDF report generation.
+
+
+================================================================================
+10. KEY QUESTIONS & ANSWERS FOR MENTOR / VIVA REVIEW
+================================================================================
+
+Q1: Why didn't you simply use an API like GPT-4 or Claude?
+A1: Commercial LLM APIs introduce ongoing token costs, data privacy liabilities
+    (sensitive user text sent to third parties), rate limits, network latency,
+    and non-deterministic output. MoodMax runs local, fine-tuned, specialized
+    open-weight models that are fast, free to run, and protect user data.
+
+Q2: Why DistilBERT over standard BERT or RoBERTa for emotion?
+A2: DistilBERT retains 97% of BERT's language understanding while being 40%
+    smaller and 60% faster during inference, making it ideal for responsive,
+    real-time web serving without requiring high-end datacenter GPUs.
+
+Q3: Why is emotion modeled as multi-label instead of single-label multi-class?
+A3: Real human communication frequently blends emotions (e.g., Bitter-sweet,
+    Joyful surprise, Angry disappointment). Multi-label classification with
+    BCEWithLogitsLoss allows independent probability outputs for each emotion.
+
+Q4: How does the application handle Indian and regional languages?
+A4: DistilBERT Multilingual was pretrained on 104 languages. Combined with FastText
+    language detection and UTF-8 Devanagari font rendering in PDF generation,
+    the platform accurately classifies and reports on Indian and regional text.
+
+Q5: Why is the architecture purely stateless without a database?
+A5: Social text analysis often involves confidential feedback, employee surveys,
+    or proprietary social streams. A stateless design guarantees zero permanent
+    data retention, eliminates database maintenance, and maximizes user privacy.
+
+================================================================================
+                            END OF PROJECT SUMMARY
+================================================================================

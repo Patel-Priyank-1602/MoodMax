@@ -47,6 +47,19 @@ export default function ResultCard({ result }) {
 
   return (
     <div className="result-card card animate-fade-in-up" id="analysis-result">
+      {result.correction_applied && (
+        <div className="correction-pill-banner animate-fade-in">
+          <svg className="correction-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+          <span className="correction-text">
+            <strong>{result.correction_type === 'sarcasm' ? 'Sarcasm Layer:' : 'Negation Scope Layer:'}</strong> {result.correction_reason}
+          </span>
+        </div>
+      )}
+
       {/* Top 3-Metric Summary Banner */}
       <div className="result-summary-grid">
         {/* Metric 1: Overall Sentiment */}

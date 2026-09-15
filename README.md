@@ -858,7 +858,81 @@ docker-compose up --build
         "disgust": 0.0010,
         "anger": 0.0005
       },
-      "dominant_emotion": "joy"
+      "dominant_emotion": "joy",
+      "correction_applied": false,
+      "correction_reason": null
+    }
+  ]
+}
+```
+
+---
+
+### 4. 1-Click Executive PDF Audit Report (In-Memory Streaming)
+**`POST /api/analyze/batch/report`**
+
+**Request Headers:** `Content-Type: application/json`
+
+**Request Body:** Send the batch analysis response object (`{ filename, summary, results }`).
+
+**Response (HTTP 200 OK):**
+- **Content-Type:** `application/pdf`
+- **Content-Disposition:** `attachment; filename="MoodMax_Executive_Report_*.pdf"`
+- **Architecture:** Generated 100% in RAM via `ReportLab` and `Matplotlib` BytesIO streaming. Zero temporary files or disk writes on the server.
+- **Report Contents:**
+  - Page 1: Header KPI cards, Sentiment Donut Chart, 7-Axis Emotion Radar Chart, and Deterministic Executive Summary.
+  - Page 2: Strategic Action Plan and Actionable Takeaways. Fully supports multi-script Unicode (including Hindi/Devanagari) via dynamically loaded `NotoSans` and `NotoSansDevanagari` fonts.
+
+---
+
+### 5. Aspect-Based Emotion & Sentiment Analysis (ABSA)
+**`POST /api/analyze/aspects`**
+
+**Request Headers:** `Content-Type: application/json`
+
+**Request Body:**
+```json
+{
+  "text": "The camera is phenomenal and takes breathtaking photos, but the battery life is absolutely atrocious and customer support was completely unhelpful."
+}
+```
+
+**Response (HTTP 200 OK):**
+```json
+{
+  "input_text": "The camera is phenomenal and takes breathtaking photos, but the battery life is absolutely atrocious and customer support was completely unhelpful.",
+  "overall_sentiment": "Mixed",
+  "has_multiple_aspects": true,
+  "aspects": [
+    {
+      "aspect": "Camera",
+      "clause_text": "The camera is phenomenal and takes breathtaking photos",
+      "sentiment_label": "Positive",
+      "sentiment_score": 0.833,
+      "dominant_emotion": "joy",
+      "emotion_scores": { "joy": 0.833, "neutral": 0.05, "surprise": 0.04, ... },
+      "correction_applied": false,
+      "correction_reason": null
+    },
+    {
+      "aspect": "Battery life",
+      "clause_text": "the battery life is absolutely atrocious",
+      "sentiment_label": "Negative",
+      "sentiment_score": 0.850,
+      "dominant_emotion": "anger",
+      "emotion_scores": { "anger": 0.60, "disgust": 0.25, ... },
+      "correction_applied": true,
+      "correction_reason": "Strong negative term identified: 'atrocious'"
+    },
+    {
+      "aspect": "Customer support",
+      "clause_text": "customer support was completely unhelpful.",
+      "sentiment_label": "Negative",
+      "sentiment_score": 0.956,
+      "dominant_emotion": "anger",
+      "emotion_scores": { "anger": 0.60, "disgust": 0.25, ... },
+      "correction_applied": true,
+      "correction_reason": "Strong negative term identified: 'unhelpful'"
     }
   ]
 }

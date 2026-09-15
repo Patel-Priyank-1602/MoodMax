@@ -6,9 +6,11 @@ Stateless and immediate: takes CSV, runs inference, aggregates stats, returns re
 import csv
 import io
 from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi.responses import StreamingResponse
 
 from ..ml.pipeline import ml_pipeline
-from ..schemas import BatchAnalyzeResponse, BatchSummary, BatchItemResult
+from ..ml.report import generate_executive_pdf_report
+from ..schemas import BatchAnalyzeResponse, BatchSummary, BatchItemResult, BatchReportRequest
 
 router = APIRouter(prefix="/api", tags=["batch"])
 
@@ -81,6 +83,9 @@ async def analyze_batch(file: UploadFile = File(...)):
                 sentiment_score=res.sentiment_score,
                 emotion_scores=res.emotion_scores,
                 dominant_emotion=res.dominant_emotion,
+                correction_applied=res.correction_applied,
+                correction_type=res.correction_type,
+                correction_reason=res.correction_reason,
             )
         )
 
@@ -99,3 +104,37 @@ async def analyze_batch(file: UploadFile = File(...)):
         summary=summary,
         results=results,
     )
+
+
+@router.post("/analyze/batch/report")
+async def generate_batch_report(request: BatchReportRequest):
+    """Generate a branded 2-page Executive PDF Report in-memory from batch analysis results.
+    
+    100% Stateless & In-Memory: Streams raw PDF bytes directly without writing to server disk.
+    """
+    try:
+        summary_dict = request.summary.model_dump()
+        results_list = [r.model_dump() for r in request.results]
+
+        pdf_buffer = generate_executive_pdf_report(
+            filename=request.filename,
+            summary=summary_dict,
+            results=results_list,
+        )
+
+        base_name = "batch"
+        if request.filename:
+            base_name = request.filename.rsplit(".", 1)[0]
+        download_filename = f"moodmax_{base_name}_executive_report.pdf"
+
+        return StreamingResponse(
+            pdf_buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{download_filename}"',
+                "Access-Control-Expose-Headers": "Content-Disposition",
+            },
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate PDF report: {str(e)}")
+

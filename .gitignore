@@ -48,6 +48,10 @@ data/processed/*.csv
 # OS
 .DS_Store
 Thumbs.db
+
+# Scratch testing scripts
+scratch/
+
 desktop.ini
 
 # Environment

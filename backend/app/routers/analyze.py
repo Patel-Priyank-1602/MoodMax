@@ -5,7 +5,8 @@ POST /api/analyze — Single text analysis endpoint (stateless).
 from fastapi import APIRouter, HTTPException
 
 from ..ml.pipeline import ml_pipeline
-from ..schemas import AnalyzeRequest, AnalyzeResponse, SentimentResult
+from ..ml.aspects import analyze_aspect_sentiment
+from ..schemas import AnalyzeRequest, AnalyzeResponse, SentimentResult, AspectAnalyzeResponse
 
 router = APIRouter(prefix="/api", tags=["analyze"])
 
@@ -30,4 +31,23 @@ async def analyze_text(request: AnalyzeRequest):
         ),
         emotions=result.emotion_scores,
         dominant_emotion=result.dominant_emotion,
+        correction_applied=result.correction_applied,
+        correction_type=result.correction_type,
+        correction_reason=result.correction_reason,
     )
+
+
+@router.post("/analyze/aspects", response_model=AspectAnalyzeResponse)
+async def analyze_aspects(request: AnalyzeRequest):
+    """Analyze compound text using Aspect-Based Emotion & Sentiment Analysis (ABSA).
+    
+    Extracts individual noun phrase targets, computes localized sentiment/emotion
+    for each clause, and synthesizes overall sentiment (including 'Mixed').
+    """
+    text = request.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Text cannot be empty or whitespace only.")
+
+    result = analyze_aspect_sentiment(text, ml_pipeline)
+    return AspectAnalyzeResponse(**result)
+

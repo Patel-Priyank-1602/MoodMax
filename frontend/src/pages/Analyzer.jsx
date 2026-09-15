@@ -3,21 +3,40 @@ import TextInput from '../components/TextInput';
 import ResultCard from '../components/ResultCard';
 import EmotionChart from '../components/EmotionChart';
 import SentimentGauge from '../components/SentimentGauge';
-import { analyzeText } from '../api/client';
+import { analyzeText, analyzeAspects } from '../api/client';
 import './Analyzer.css';
+
+const EMOTION_COLORS = {
+  joy: '#F59E0B',
+  sadness: '#3B82F6',
+  anger: '#EF4444',
+  fear: '#8B5CF6',
+  surprise: '#EC4899',
+  disgust: '#10B981',
+  neutral: '#94A3B8',
+};
 
 export default function Analyzer() {
   const [result, setResult] = useState(null);
+  const [aspectsData, setAspectsData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const handleAnalyze = async (text) => {
     setIsLoading(true);
     setError(null);
+    setAspectsData(null);
 
     try {
-      const data = await analyzeText(text);
+      const [data, aspects] = await Promise.all([
+        analyzeText(text),
+        analyzeAspects(text).catch((err) => {
+          console.warn('Aspect analysis failed/skipped:', err);
+          return null;
+        }),
+      ]);
       setResult(data);
+      setAspectsData(aspects);
     } catch (err) {
       console.error('Analysis failed:', err);
       if (err.response?.data?.detail) {
@@ -156,6 +175,66 @@ export default function Analyzer() {
           </div>
 
           <ResultCard result={result} />
+
+          {aspectsData && aspectsData.has_multiple_aspects && (
+            <div className="absa-section card animate-fade-in-up" id="absa-results">
+              <div className="absa-header">
+                <div className="absa-title-group">
+                  <span className="absa-icon-wrap">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#267F4B" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                      <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                      <line x1="12" y1="22.08" x2="12" y2="12"/>
+                    </svg>
+                  </span>
+                  <div>
+                    <h3 className="absa-title">Aspect-Based Breakdown (ABSA)</h3>
+                    <p className="absa-subtitle">
+                      Detected {aspectsData.aspects.length} distinct targets with localized emotional tone
+                    </p>
+                  </div>
+                </div>
+                <div className="absa-overall-badge">
+                  <span className="absa-overall-label">Synthesized:</span>
+                  <span className={`sentiment-badge sentiment-${aspectsData.overall_sentiment.toLowerCase()}`}>
+                    {aspectsData.overall_sentiment}
+                  </span>
+                </div>
+              </div>
+
+              <div className="absa-grid">
+                {aspectsData.aspects.map((item, idx) => (
+                  <div key={idx} className="absa-card">
+                    <div className="absa-card-header">
+                      <span className="absa-target-pill">{item.aspect}</span>
+                      <span className={`sentiment-badge sentiment-${item.sentiment_label.toLowerCase()}`}>
+                        {item.sentiment_label} ({(item.sentiment_score * 100).toFixed(0)}%)
+                      </span>
+                    </div>
+                    <blockquote className="absa-clause">
+                      "{item.clause_text}"
+                    </blockquote>
+                    <div className="absa-card-footer">
+                      <span className="absa-emotion-tag">
+                        <span
+                          className="emotion-dot"
+                          style={{
+                            background: EMOTION_COLORS[item.dominant_emotion?.toLowerCase()] || '#267F4B',
+                          }}
+                        />
+                        {item.dominant_emotion ? item.dominant_emotion.charAt(0).toUpperCase() + item.dominant_emotion.slice(1) : 'Neutral'}
+                      </span>
+                      {item.correction_applied && (
+                        <span className="absa-corrected-tag" title={item.correction_reason}>
+                          ⚡ Corrected
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

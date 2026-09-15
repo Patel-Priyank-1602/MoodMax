@@ -32,6 +32,9 @@ class AnalyzeResponse(BaseModel):
     sentiment: SentimentResult
     emotions: dict[str, float]  # {"joy": 0.91, "surprise": 0.06, ...}
     dominant_emotion: str
+    correction_applied: bool = False
+    correction_type: Optional[str] = None
+    correction_reason: Optional[str] = None
 
 
 class BatchItemResult(BaseModel):
@@ -42,6 +45,9 @@ class BatchItemResult(BaseModel):
     sentiment_score: float
     emotion_scores: dict[str, float]
     dominant_emotion: str
+    correction_applied: bool = False
+    correction_type: Optional[str] = None
+    correction_reason: Optional[str] = None
 
 
 class BatchSummary(BaseModel):
@@ -57,3 +63,32 @@ class BatchAnalyzeResponse(BaseModel):
     filename: Optional[str] = None
     summary: BatchSummary
     results: list[BatchItemResult]
+
+
+class BatchReportRequest(BaseModel):
+    """POST /api/analyze/batch/report request body."""
+    filename: Optional[str] = None
+    summary: BatchSummary
+    results: list[BatchItemResult]
+
+
+class AspectItem(BaseModel):
+    """Single aspect analysis item."""
+    aspect: str
+    clause_text: str
+    sentiment_label: str
+    sentiment_score: float
+    dominant_emotion: str
+    emotion_scores: dict[str, float]
+    correction_applied: bool = False
+    correction_reason: Optional[str] = None
+
+
+class AspectAnalyzeResponse(BaseModel):
+    """POST /api/analyze/aspects response."""
+    input_text: str
+    overall_sentiment: str  # Positive / Negative / Neutral / Mixed
+    has_multiple_aspects: bool
+    aspects: list[AspectItem]
+
+

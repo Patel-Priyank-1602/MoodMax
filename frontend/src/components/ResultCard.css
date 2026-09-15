@@ -10,6 +10,31 @@
   box-shadow: 0 10px 36px rgba(35, 75, 48, 0.05);
 }
 
+.correction-pill-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  margin-bottom: 20px;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: 12px;
+  color: #B45309;
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.correction-icon {
+  flex-shrink: 0;
+  stroke: #D97706;
+}
+
+.correction-text strong {
+  font-weight: 700;
+  color: #92400E;
+}
+
 /* ─── Top 3-Metric Summary Banner ─── */
 .result-summary-grid {
   display: grid;

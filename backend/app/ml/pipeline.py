@@ -18,6 +18,7 @@ from typing import Optional
 import numpy as np
 
 from .preprocess import clean_text
+from .correction import apply_corrections
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,9 @@ class AnalysisResult:
     sentiment_score: float  # confidence
     emotion_scores: dict    # {"joy": 0.91, "surprise": 0.06, ...}
     dominant_emotion: str
+    correction_applied: bool = False
+    correction_type: Optional[str] = None
+    correction_reason: Optional[str] = None
 
 
 # ─────────────────────────────────────────────
@@ -394,12 +398,24 @@ class MLPipeline:
         # 5. Predict sentiment (using model or emotion distribution)
         sentiment_label, sentiment_score = self.predict_sentiment(inference_text, emotion_scores=emotion_scores)
 
-        return AnalysisResult(
-            detected_lang=detected_lang,
+        # 6. Apply targeted Sarcasm & Negation correction layer (Feature 4)
+        corr = apply_corrections(
+            text=inference_text,
             sentiment_label=sentiment_label,
             sentiment_score=sentiment_score,
             emotion_scores=emotion_scores,
             dominant_emotion=dominant_emotion,
+        )
+
+        return AnalysisResult(
+            detected_lang=detected_lang,
+            sentiment_label=corr["sentiment_label"],
+            sentiment_score=corr["sentiment_score"],
+            emotion_scores=corr["emotion_scores"],
+            dominant_emotion=corr["dominant_emotion"],
+            correction_applied=corr["correction_applied"],
+            correction_type=corr["correction_type"],
+            correction_reason=corr["correction_reason"],
         )
 
     # ─────────────────────────────────────────

@@ -127,6 +127,43 @@
   margin-bottom: 0;
 }
 
+.batch-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-download-pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  background: linear-gradient(135deg, #1B6539 0%, #267F4B 100%);
+  border: 1px solid #1B6539;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(27, 101, 57, 0.25);
+  transition: all var(--transition-fast);
+}
+
+.btn-download-pdf:hover:not(:disabled) {
+  background: linear-gradient(135deg, #16532e 0%, #1e6b3e 100%);
+  box-shadow: 0 6px 20px rgba(27, 101, 57, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-download-pdf:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-download-pdf:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .btn-download-csv {
   display: inline-flex;
   align-items: center;
@@ -152,6 +189,22 @@
 
 .btn-download-csv:active {
   transform: translateY(0);
+}
+
+.spinner-small {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #FFFFFF;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .batch-results-table-wrap {
