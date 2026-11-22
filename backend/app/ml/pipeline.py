@@ -269,21 +269,38 @@ class MLPipeline:
 
     def _load_language_detector(self, model_dir: str):
         """Load fastText language detection model."""
-        lid_path = os.path.join(model_dir, "lid.176.bin")
+        lid_bin = os.path.join(model_dir, "lid.176.bin")
+        lid_ftz = os.path.join(model_dir, "lid.176.ftz")
 
-        if os.path.exists(lid_path):
+        target_path = None
+        if os.path.exists(lid_bin):
+            target_path = lid_bin
+        elif os.path.exists(lid_ftz):
+            target_path = lid_ftz
+        else:
+            # Dynamically download the lightweight 900KB compressed model
+            try:
+                import urllib.request
+                os.makedirs(model_dir, exist_ok=True)
+                download_url = "https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.ftz"
+                logger.info("  Downloading lightweight fastText model (900 KB)...")
+                urllib.request.urlretrieve(download_url, lid_ftz)
+                target_path = lid_ftz
+            except Exception as e:
+                logger.warning(f"  Could not download fastText model: {e}")
+
+        if target_path and os.path.exists(target_path):
             try:
                 import fasttext
-
                 fasttext.FastText.eprint = lambda x: None
-                self.lang_detector = fasttext.load_model(lid_path)
+                self.lang_detector = fasttext.load_model(target_path)
                 self._langdetect_available = True
-                logger.info(f"  Language detector loaded from {lid_path}")
+                logger.info(f"  Language detector loaded from {target_path}")
             except Exception as e:
                 logger.warning(f"  Failed to load fastText: {e}")
                 self._langdetect_available = False
         else:
-            logger.warning(f"  fastText model not found at {lid_path}. Using fallback 'en'.")
+            logger.warning("  fastText model not found. Using fallback 'en'.")
             self._langdetect_available = False
 
     # ─────────────────────────────────────────

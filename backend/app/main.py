@@ -83,7 +83,7 @@ async def health_check():
         "status": "healthy",
         "models": {
             "emotion": "loaded" if ml_pipeline._emotion_available else "fallback",
-            "sentiment": "loaded" if ml_pipeline._sentiment_available else "fallback",
+            "sentiment": "loaded" if ml_pipeline._sentiment_available else "derived",
             "language_detection": "loaded" if ml_pipeline._langdetect_available else "fallback",
         },
     }
