@@ -71,6 +71,9 @@ class MLPipeline:
         self._per_class_thresholds = None  # Phase 1: per-class decision thresholds
         self._per_class_temperatures = None  # Phase 3: per-class calibration temperatures
         self._is_custom_model = False  # True when using fine-tuned model (not fallback)
+        self.use_hf_api = False
+        self.hf_model_id = os.getenv("HF_MODEL_ID") or os.getenv("HF_EMOTION_MODEL")
+        self.hf_api_token = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACE_API_KEY")
 
     def load_models(self, model_dir: Optional[str] = None):
         """Load all ML models. Called once at app startup."""
@@ -105,6 +108,56 @@ class MLPipeline:
 
     def _load_emotion_model(self, model_dir: str):
         """Load the fine-tuned emotion classification model or pretrained 7-class emotion model."""
+        # 0. Check if Hugging Face Serverless Inference API is explicitly enabled
+        if os.getenv("USE_HF_INFERENCE_API", "").lower() in ("true", "1", "yes") and self.hf_model_id:
+            logger.info(f"  Using Hugging Face Serverless Inference API for '{self.hf_model_id}' (Zero local RAM overhead!)")
+            self.use_hf_api = True
+            self._emotion_available = True
+            self._is_custom_model = True
+            try:
+                from huggingface_hub import hf_hub_download
+                thresh_file = hf_hub_download(repo_id=self.hf_model_id, filename="thresholds.json", token=self.hf_api_token)
+                with open(thresh_file) as f:
+                    tdata = json.load(f)
+                    self._per_class_thresholds = tdata.get("thresholds", None)
+                    if self._per_class_thresholds:
+                        logger.info(f"  Per-class thresholds loaded from HF Hub: {self._per_class_thresholds}")
+            except Exception:
+                pass
+            return
+
+        # 0b. Check if Hugging Face Model ID is specified to download/load directly from HF Hub
+        if self.hf_model_id:
+            try:
+                from transformers import pipeline as hf_pipeline
+                from huggingface_hub import hf_hub_download
+
+                logger.info(f"  Downloading/loading emotion model from Hugging Face Hub: '{self.hf_model_id}'...")
+                self.emotion_pipeline = hf_pipeline(
+                    "text-classification",
+                    model=self.hf_model_id,
+                    framework="pt",
+                    top_k=None,
+                    device=-1,
+                    token=self.hf_api_token,
+                )
+                self._emotion_available = True
+                self._is_custom_model = True
+                logger.info(f"  ✓ Custom emotion model loaded from Hugging Face Hub: {self.hf_model_id}")
+
+                try:
+                    thresh_file = hf_hub_download(repo_id=self.hf_model_id, filename="thresholds.json", token=self.hf_api_token)
+                    with open(thresh_file) as f:
+                        tdata = json.load(f)
+                        self._per_class_thresholds = tdata.get("thresholds", None)
+                        if self._per_class_thresholds:
+                            logger.info(f"  Per-class thresholds loaded from HF Hub: {self._per_class_thresholds}")
+                except Exception:
+                    pass
+                return
+            except Exception as e:
+                logger.warning(f"  Failed to load model from HF Hub ({self.hf_model_id}): {e}. Trying local...")
+
         emotion_model_path = os.path.join(model_dir, "emotion-distilbert-multi")
 
         # 1. Check if user-trained model exists
@@ -261,24 +314,54 @@ class MLPipeline:
         if not self._emotion_available:
             return self._mock_emotions(text)
 
-        try:
-            import torch
-            with torch.no_grad():
-                results = self.emotion_pipeline(text[:512], return_token_type_ids=False)
-            if results and len(results) > 0:
-                scores = results[0] if isinstance(results[0], list) else results
-                emotion_dict = {}
-                for item in scores:
-                    label = item["label"].lower()
-                    if label in EMOTION_LABELS:
-                        emotion_dict[label] = round(float(item["score"]), 4)
-                # Ensure all 7 emotions are present
-                for emotion in EMOTION_LABELS:
-                    if emotion not in emotion_dict:
-                        emotion_dict[emotion] = 0.0
-                return emotion_dict
-        except Exception as e:
-            logger.error(f"Emotion prediction error: {e}")
+        # Mode A: Hugging Face Serverless Inference API (Zero local RAM)
+        if self.use_hf_api and self.hf_model_id:
+            try:
+                import requests
+                api_url = f"https://api-inference.huggingface.co/models/{self.hf_model_id}"
+                headers = {}
+                if self.hf_api_token:
+                    headers["Authorization"] = f"Bearer {self.hf_api_token}"
+
+                resp = requests.post(api_url, headers=headers, json={"inputs": text[:512]}, timeout=15)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    scores = data[0] if isinstance(data, list) and len(data) > 0 and isinstance(data[0], list) else data
+                    emotion_dict = {}
+                    for item in scores:
+                        if isinstance(item, dict) and "label" in item and "score" in item:
+                            label = item["label"].lower()
+                            if label in EMOTION_LABELS:
+                                emotion_dict[label] = round(float(item["score"]), 4)
+                    for emotion in EMOTION_LABELS:
+                        if emotion not in emotion_dict:
+                            emotion_dict[emotion] = 0.0
+                    return emotion_dict
+                else:
+                    logger.warning(f"HF Inference API returned status {resp.status_code}: {resp.text}")
+            except Exception as e:
+                logger.error(f"HF Inference API error: {e}")
+
+        # Mode B: Local PyTorch Transformer inference
+        if self.emotion_pipeline:
+            try:
+                import torch
+                with torch.no_grad():
+                    results = self.emotion_pipeline(text[:512], return_token_type_ids=False)
+                if results and len(results) > 0:
+                    scores = results[0] if isinstance(results[0], list) else results
+                    emotion_dict = {}
+                    for item in scores:
+                        label = item["label"].lower()
+                        if label in EMOTION_LABELS:
+                            emotion_dict[label] = round(float(item["score"]), 4)
+                    # Ensure all 7 emotions are present
+                    for emotion in EMOTION_LABELS:
+                        if emotion not in emotion_dict:
+                            emotion_dict[emotion] = 0.0
+                    return emotion_dict
+            except Exception as e:
+                logger.error(f"Emotion prediction error: {e}")
 
         return self._mock_emotions(text)
 
